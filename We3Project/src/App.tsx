@@ -1,5 +1,4 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import feedImage from '../Pictures/feed.png';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './components/Home';
@@ -38,21 +37,16 @@ function App() {
             <div className="pt-16"> {/* Spacer for fixed navbar */}
               <div className="bg-emerald-600 text-white py-8 md:py-10">
                 <div className="container mx-auto px-4">
-                  <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr] items-start mb-4">
-                    <div className="space-y-3">
-                      <h1 className="text-4xl md:text-5xl font-black tracking-tighter">Impact Feed</h1>
-                      <p className="text-emerald-50 text-lg opacity-90 max-w-2xl">See real impact stories, share your progress, and inspire donors and volunteers to keep giving back.</p>
-                      <div className="flex flex-wrap gap-3 pt-1">
-                        <button className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold bg-white text-emerald-600 shadow-xl transition-all">
-                          Community Feed
-                        </button>
-                        <button onClick={() => navigate('/volunteer')} className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold bg-emerald-700/50 text-emerald-100 hover:bg-emerald-700 transition-all">
-                          Volunteer
-                        </button>
-                      </div>
-                    </div>
-                    <div className="overflow-hidden rounded-[1.5rem] p-0 shadow-none bg-transparent lg:justify-self-end">
-                      <img src={feedImage} alt="FreeHunger impact feed" className="h-auto w-full max-w-[420px] object-contain rounded-[1.25rem] lg:w-[420px]" />
+                  <div className="max-w-3xl space-y-3">
+                    <h1 className="text-4xl md:text-5xl font-black tracking-tighter">Impact Feed</h1>
+                    <p className="text-emerald-50 text-lg opacity-90 max-w-2xl">See real impact stories, share your progress, and inspire donors and volunteers to keep giving back.</p>
+                    <div className="flex flex-wrap gap-3 pt-1">
+                      <button className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold bg-white text-emerald-600 shadow-xl transition-all">
+                        Community Feed
+                      </button>
+                      <button onClick={() => navigate('/volunteer')} className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold bg-emerald-700/50 text-emerald-100 hover:bg-emerald-700 transition-all">
+                        Volunteer
+                      </button>
                     </div>
                   </div>
 
