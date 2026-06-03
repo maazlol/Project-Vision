@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "pages:build": "cd We3Project && npm run build && cd .. && if exist docs rmdir /s /q docs && xcopy /E /I We3Project\\dist docs > nul && type nul > docs\\.nojekyll"
+    "pages:build": "cd We3Project && npm run build && cd .. && powershell -NoProfile -Command \"if (Test-Path docs) { Remove-Item docs -Recurse -Force }; Copy-Item We3Project/dist docs -Recurse; New-Item -ItemType File -Path docs/.nojekyll -Force\""
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",
