@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, query } from 'firebase/firestore';
-import { Navigation, Car, Bike, ArrowRight, MapPinned, HeartHandshake } from 'lucide-react';
+import { Navigation } from 'lucide-react';
 import DonationRequestForm from './VolunteerMap/DonationRequestForm';
 import { useToast } from './Toast';
 
@@ -54,8 +54,9 @@ const RecenterMap = ({ lat, lng }: { lat: number, lng: number }) => {
 const VolunteerMap: React.FC = () => {
   const [ngos, setNgos] = useState<NGO[]>([]);
   const [selectedNgo, setSelectedNgo] = useState<NGO | null>(fallbackNgos[0]);
-  const [transport, setTransport] = useState('google_maps');
+  const [showForm, setShowForm] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const formRef = useRef<HTMLDivElement | null>(null);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -89,30 +90,14 @@ const VolunteerMap: React.FC = () => {
     showToast(`Request sent for ${payload.ngoLabel ?? 'your selected NGO'}. We will contact you soon.`, 'success');
   };
 
-  const handleTransportGo = () => {
-    if (!selectedNgo) return;
-    
-    const { latitude: lat, longitude: lng } = selectedNgo;
-    const urls: Record<string, string> = {
-      google_maps: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-      indrive: `indriver://`,
-      careem: `careem://pickup?d=${lat},${lng}`,
-      bykea: `bykea://`
-    };
-    
-    const fallbacks: Record<string, string> = {
-      indrive: 'https://indrive.com',
-      careem: 'https://www.careem.com',
-      bykea: 'https://www.bykea.com'
-    };
+  const handleToggleForm = () => {
+    const nextState = !showForm;
+    setShowForm(nextState);
 
-    window.open(urls[transport] || urls.google_maps, '_blank');
-    if (fallbacks[transport]) {
-      setTimeout(() => {
-        if (!document.hidden) {
-            window.location.href = fallbacks[transport];
-        }
-      }, 1000);
+    if (nextState) {
+      requestAnimationFrame(() => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     }
   };
 
@@ -133,91 +118,44 @@ const VolunteerMap: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
-            <div className="space-y-8">
-              <div className="grid gap-4 md:grid-cols-2">
-                {(ngos.length ? ngos : fallbackNgos).slice(0, 6).map((ngo) => (
-                  <button
-                    key={ngo.id}
-                    type="button"
-                    onClick={() => setSelectedNgo(ngo)}
-                    className={`rounded-[1.5rem] border p-4 text-left shadow-sm transition ${selectedNgo?.id === ngo.id ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 bg-white hover:border-emerald-200 hover:bg-emerald-50/40'}`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-500">{ngo.type ?? 'ngo'}</p>
-                        <h3 className="mt-1 text-base font-black text-slate-900">{ngo.name}</h3>
-                        <p className="mt-1 text-xs text-slate-500">{ngo.city ?? 'Pakistan'} · {ngo.address ?? 'Community support'}</p>
-                      </div>
-                      <MapPinned size={16} className="text-emerald-500" />
-                    </div>
-                  </button>
-                ))}
+          <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
+            <div className="space-y-6 rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm shadow-slate-200/60">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-500">Nearest Organizations</p>
+                <h3 className="mt-2 text-2xl font-black text-slate-900">Use your location to find nearby verified NGOs.</h3>
+                <p className="mt-2 text-sm text-slate-600">Allow location access to see the nearest organizations. You can also manually choose an NGO from the map and open the donation form below.</p>
               </div>
 
-              <div className="rounded-[2rem] border border-slate-100 bg-slate-50 p-6 shadow-sm">
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Select Destination</label>
-                    <select
-                      className="w-full rounded-2xl border border-transparent bg-white py-3 px-4 text-sm font-bold text-slate-700 shadow-sm outline-none transition focus:border-emerald-500"
-                      onChange={(e) => {
-                        const ngo = (ngos.length ? ngos : fallbackNgos).find((item) => item.id === e.target.value);
-                        if (ngo) setSelectedNgo(ngo);
-                      }}
-                      value={selectedNgo?.id || ''}
-                    >
-                      <option value="" disabled>Choose an NGO...</option>
-                      {(ngos.length ? ngos : fallbackNgos).map((ngo) => (
-                        <option key={ngo.id} value={ngo.id}>{ngo.name}</option>
-                      ))}
-                    </select>
-                  </div>
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600">
+                <p className="font-semibold text-slate-900">Quick options</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
+                  <li>Choose a verified NGO from the list</li>
+                  <li>Open donation form when you are ready</li>
+                  <li>Use Google Maps / InDrive / Careem / Bykea for the trip</li>
+                </ul>
+              </div>
 
-                  <div>
-                    <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Choose Transport</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { id: 'google_maps', label: 'Google Maps', icon: <Navigation size={18} /> },
-                        { id: 'indrive', label: 'InDrive', icon: <Car size={18} /> },
-                        { id: 'careem', label: 'Careem', icon: <Car size={18} /> },
-                        { id: 'bykea', label: 'Bykea', icon: <Bike size={18} /> },
-                      ].map((opt) => (
-                        <button
-                          key={opt.id}
-                          onClick={() => setTransport(opt.id)}
-                          className={`flex items-center gap-2 rounded-xl border-2 p-3 text-xs font-bold transition-all ${transport === opt.id ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-white bg-white text-slate-500 shadow-sm hover:border-slate-200'}`}
-                        >
-                          {opt.icon}
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              <button
+                type="button"
+                onClick={handleToggleForm}
+                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-700"
+              >
+                {showForm ? 'Hide donation form' : 'Open donation form'}
+              </button>
 
-                  <button
-                    onClick={handleTransportGo}
-                    disabled={!selectedNgo}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 py-4 text-lg font-black text-white shadow-xl transition-all hover:bg-emerald-600 disabled:opacity-50 group"
-                  >
-                    Go to Destination <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
-                  </button>
+              {showForm && (
+                <div ref={formRef} className="scroll-mt-24">
+                  <DonationRequestForm
+                    ngos={(ngos.length ? ngos : fallbackNgos)}
+                    selectedNgo={selectedNgo}
+                    onSubmit={handleDonationRequest}
+                  />
                 </div>
-              </div>
-
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-                <div className="flex items-start gap-3">
-                  <HeartHandshake size={18} className="mt-0.5 text-emerald-600" />
-                  <div>
-                    <p className="text-sm font-black text-slate-900">Ready for sharing</p>
-                    <p className="text-xs text-slate-600">The NGO card list and donation request form are now separated, so the page stays clean and easy to reuse in screenshots or Git uploads.</p>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="space-y-6">
-              <div className="h-[420px] rounded-[2.5rem] border-8 border-white shadow-2xl shadow-slate-200/70 relative z-0 overflow-hidden lg:h-[500px]">
+              <div className="h-[360px] rounded-[2.5rem] border-8 border-white shadow-2xl shadow-slate-200/70 relative z-0 overflow-hidden lg:h-[420px]">
                 <MapContainer
                   center={userLocation || [30.3753, 69.3451]}
                   zoom={5}
@@ -258,7 +196,10 @@ const VolunteerMap: React.FC = () => {
                 </div>
               </div>
 
-              <DonationRequestForm ngos={(ngos.length ? ngos : fallbackNgos)} selectedNgo={selectedNgo} onSubmit={handleDonationRequest} />
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-700">
+                <p className="font-black">Tip</p>
+                <p className="mt-1 text-emerald-700/90">Use the map to pick a destination, then open the form when you are ready to send the donation request.</p>
+              </div>
             </div>
           </div>
 

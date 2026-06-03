@@ -1,4 +1,5 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import feedImage from '../Pictures/feed.png';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './components/Home';
@@ -35,30 +36,26 @@ function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/feed" element={
             <div className="pt-16"> {/* Spacer for fixed navbar */}
-              <div className="bg-emerald-600 text-white py-12">
+              <div className="bg-emerald-600 text-white py-8 md:py-10">
                 <div className="container mx-auto px-4">
-                  <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
-                    <div>
-                      <h1 className="text-4xl md:text-5xl font-black mb-3 tracking-tighter">Feed</h1>
-                      <p className="text-emerald-50 text-lg opacity-90">Share your impact. Inspire others. Build a community of change.</p>
+                  <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr] items-start mb-4">
+                    <div className="space-y-3">
+                      <h1 className="text-4xl md:text-5xl font-black tracking-tighter">Impact Feed</h1>
+                      <p className="text-emerald-50 text-lg opacity-90 max-w-2xl">See real impact stories, share your progress, and inspire donors and volunteers to keep giving back.</p>
+                      <div className="flex flex-wrap gap-3 pt-1">
+                        <button className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold bg-white text-emerald-600 shadow-xl transition-all">
+                          Community Feed
+                        </button>
+                        <button onClick={() => navigate('/volunteer')} className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold bg-emerald-700/50 text-emerald-100 hover:bg-emerald-700 transition-all">
+                          Volunteer
+                        </button>
+                      </div>
                     </div>
-                    <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 flex items-center gap-3">
-                      <span className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                      </span>
-                      <span className="font-bold">Active community</span>
+                    <div className="overflow-hidden rounded-[1.5rem] p-0 shadow-none bg-transparent lg:justify-self-end">
+                      <img src={feedImage} alt="FreeHunger impact feed" className="h-auto w-full max-w-[420px] object-contain rounded-[1.25rem] lg:w-[420px]" />
                     </div>
                   </div>
 
-                  <div className="flex gap-4">
-                    <button className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold bg-white text-emerald-600 shadow-xl transition-all">
-                      Community Feed
-                    </button>
-                    <button onClick={() => navigate('/volunteer')} className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold bg-emerald-700/50 text-emerald-100 hover:bg-emerald-700 transition-all">
-                      Volunteer
-                    </button>
-                  </div>
                 </div>
               </div>
               <Feed />

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Heart, Send, Phone, Sparkles, Package2 } from 'lucide-react';
+import { Send, Sparkles, Package2 } from 'lucide-react';
 
 interface NGO {
   id: string;
@@ -28,9 +28,9 @@ const donationTypes = [
 export default function DonationRequestForm({ ngos, selectedNgo, onSubmit }: DonationRequestFormProps) {
   const [formData, setFormData] = useState({
     donorName: '',
-    donorPhone: '',
     ngoId: selectedNgo?.id ?? '',
     donationType: donationTypes[0],
+    transport: 'google_maps',
     quantity: '1 box',
     notes: '',
   });
@@ -41,10 +41,41 @@ export default function DonationRequestForm({ ngos, selectedNgo, onSubmit }: Don
     }
   }, [selectedNgo]);
 
-  const selectedNgoLabel = useMemo(
-    () => ngos.find((ngo) => ngo.id === formData.ngoId)?.name ?? 'Choose an NGO',
+  const activeNgo = useMemo(
+    () => ngos.find((ngo) => ngo.id === formData.ngoId) ?? null,
     [formData.ngoId, ngos],
   );
+
+  const selectedNgoLabel = activeNgo?.name ?? 'Choose an NGO';
+
+  const routeUrl = useMemo(() => {
+    if (!activeNgo) {
+      return '';
+    }
+
+    const query = encodeURIComponent(`${activeNgo.address || activeNgo.name}, ${activeNgo.city || 'Pakistan'}`);
+
+    switch (formData.transport) {
+      case 'google_maps':
+        return `https://www.google.com/maps/search/?api=1&query=${query}`;
+      case 'indrive':
+        return 'https://www.indrive.com/';
+      case 'careem':
+        return 'https://www.careem.com/';
+      case 'bykea':
+        return 'https://www.bykea.com/';
+      default:
+        return `https://www.google.com/maps/search/?api=1&query=${query}`;
+    }
+  }, [activeNgo, formData.transport]);
+
+  const handleOpenRoute = () => {
+    if (!routeUrl) {
+      return;
+    }
+
+    window.open(routeUrl, '_blank', 'noopener,noreferrer');
+  };
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -55,54 +86,33 @@ export default function DonationRequestForm({ ngos, selectedNgo, onSubmit }: Don
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 rounded-[2rem] border border-slate-100 bg-white p-6 shadow-xl shadow-slate-200/40">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-500">Donation request</p>
-          <h3 className="mt-2 text-xl font-black text-slate-900">Plan your support</h3>
-          <p className="mt-1 text-sm text-slate-500">Choose what you want to donate and which NGO you want to support.</p>
-        </div>
-        <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
-          <Heart size={18} />
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="space-y-2 text-sm font-semibold text-slate-600">
-          Your name
-          <input
-            required
-            value={formData.donorName}
-            onChange={(e) => setFormData((prev) => ({ ...prev, donorName: e.target.value }))}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500 focus:bg-white"
-            placeholder="Ali Khan"
-          />
-        </label>
-
-        <label className="space-y-2 text-sm font-semibold text-slate-600">
-          Contact number
-          <span className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm focus-within:border-emerald-500 focus-within:bg-white">
-            <Phone size={15} className="text-slate-400" />
-            <input
-              required
-              value={formData.donorPhone}
-              onChange={(e) => setFormData((prev) => ({ ...prev, donorPhone: e.target.value }))}
-              className="w-full bg-transparent text-sm outline-none"
-              placeholder="+92 3XX XXXXXXX"
-            />
-          </span>
-        </label>
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-[1.5rem] border border-slate-100 bg-slate-50 p-5 shadow-sm">
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-500">Donation request</p>
+        <h3 className="mt-1 text-xl font-black text-slate-900">Quick support form</h3>
+        <p className="mt-1 text-sm text-slate-500">A simple form for your donation request.</p>
       </div>
 
       <label className="space-y-2 text-sm font-semibold text-slate-600">
-        NGO / School
+        Your Name
+        <input
+          required
+          value={formData.donorName}
+          onChange={(e) => setFormData((prev) => ({ ...prev, donorName: e.target.value }))}
+          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
+          placeholder="Enter your full name"
+        />
+      </label>
+
+      <label className="space-y-2 text-sm font-semibold text-slate-600">
+        Select NGO
         <select
           required
           value={formData.ngoId}
           onChange={(e) => setFormData((prev) => ({ ...prev, ngoId: e.target.value }))}
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
         >
-          <option value="">Select an NGO</option>
+          <option value="">Choose an NGO...</option>
           {ngos.map((ngo) => (
             <option key={ngo.id} value={ngo.id}>{ngo.name}</option>
           ))}
@@ -111,7 +121,7 @@ export default function DonationRequestForm({ ngos, selectedNgo, onSubmit }: Don
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2 text-sm font-semibold text-slate-600">
-          Donation type
+          What are you donating?
           <select
             value={formData.donationType}
             onChange={(e) => setFormData((prev) => ({ ...prev, donationType: e.target.value }))}
@@ -138,6 +148,20 @@ export default function DonationRequestForm({ ngos, selectedNgo, onSubmit }: Don
       </div>
 
       <label className="space-y-2 text-sm font-semibold text-slate-600">
+        Open route in
+        <select
+          value={formData.transport}
+          onChange={(e) => setFormData((prev) => ({ ...prev, transport: e.target.value }))}
+          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
+        >
+          <option value="google_maps">Google Maps</option>
+          <option value="indrive">InDrive</option>
+          <option value="careem">Careem</option>
+          <option value="bykea">Bykea</option>
+        </select>
+      </label>
+
+      <label className="space-y-2 text-sm font-semibold text-slate-600">
         Notes
         <textarea
           rows={3}
@@ -151,16 +175,24 @@ export default function DonationRequestForm({ ngos, selectedNgo, onSubmit }: Don
       <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-700">
         <div className="flex items-start gap-2">
           <Sparkles size={16} className="mt-0.5 shrink-0" />
-          <p>Selected NGO: <strong>{selectedNgoLabel}</strong>. This request will be saved in your local dashboard for follow-up.</p>
+          <p>Selected NGO: <strong>{selectedNgoLabel}</strong>. Use the button below to open the destination directly in your chosen transport app or map.</p>
         </div>
       </div>
 
       <button
-        type="submit"
+        type="button"
+        onClick={handleOpenRoute}
         className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-700"
       >
         <Send size={16} />
-        Submit Donation Request
+        Open route in {formData.transport === 'google_maps' ? 'Google Maps' : formData.transport === 'indrive' ? 'InDrive' : formData.transport === 'careem' ? 'Careem' : 'Bykea'}
+      </button>
+
+      <button
+        type="submit"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50"
+      >
+        Submit donation request
       </button>
     </form>
   );
