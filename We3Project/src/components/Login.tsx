@@ -12,6 +12,7 @@ import {
 import { doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { Mail, Lock, Eye, EyeOff, AtSign, AlertCircle, Loader2, Code2, Sparkles } from 'lucide-react';
 import { useToast } from './Toast';
+import minecraftImage from '../../Pictures/Minecraft.png';
 
 export default function Login() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
@@ -225,7 +226,7 @@ export default function Login() {
           </p>
           
           <div className="mb-8 text-center">
-            <img src="Pictures/Minecraft.png" alt="Team Vision Developers" className="max-h-[300px] w-auto mx-auto" />
+            <img src={minecraftImage} alt="Team Vision Developers" className="max-h-[300px] w-auto mx-auto" />
           </div>
 
           <div className="p-4 rounded-xl mb-8" style={{ background: 'rgba(255,255,255,0.12)', borderLeft: '4px solid white' }}>
