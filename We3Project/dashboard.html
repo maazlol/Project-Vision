@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreeHunger | My Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+    <!-- ── NAVBAR (injected by components.js) ── -->
+    <div id="nav-placeholder"></div>
+
+    <!-- ===== 1. USER INFO BAR ===== -->
+    <section class="user-info-section">
+        <div class="container">
+            <div class="user-info-card reveal">
+                <div class="row align-items-center g-4">
+                    <div class="col-md-3 d-flex align-items-center gap-3">
+                        <!-- Clickable avatar — opens profile settings -->
+                        <div class="user-avatar" id="userAvatarDisplay" onclick="openProfileSettings()"
+                             style="cursor:pointer;" title="Edit Profile">
+                            <i class="bi bi-person-fill" id="userAvatarIcon"></i>
+                            <img id="userAvatarImg" src="" alt="avatar"
+                                 style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:none;">
+                        </div>
+                        <div>
+                            <p class="user-label">Welcome back</p>
+                            <h5 class="user-name" id="userName">Loading...</h5>
+                            <small class="text-muted" id="userCity" style="font-size:0.76rem;"></small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="user-stat-box">
+                            <div class="user-stat-icon credits-icon">
+                                <i class="bi bi-coin"></i>
+                            </div>
+                            <div>
+                                <p class="user-label">Credits Balance</p>
+                                <h5 class="user-stat-value text-success">Rs. <span id="userCredits">0</span></h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="user-stat-box">
+                            <div class="user-stat-icon streak-icon">
+                                <i class="bi bi-fire"></i>
+                            </div>
+                            <div>
+                                <p class="user-label">Daily Streak</p>
+                                <h5 class="user-stat-value text-warning"><span id="userStreak">0</span> Days</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="user-stat-box">
+                            <div class="user-stat-icon impact-icon">
+                                <i class="bi bi-heart-fill"></i>
+                            </div>
+                            <div>
+                                <p class="user-label">Total Donated</p>
+                                <h5 class="user-stat-value" style="color:#ef4444;">Rs. <span id="totalDonated">0</span></h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 2. VIDEO / EARN CREDITS SECTION ===== -->
+    <section class="video-section bg-light">
+        <div class="container">
+            <div class="section-title reveal">
+                <h2>Watch & Earn</h2>
+                <p>Watch short videos to earn credits. Credits convert directly to Rs. donations for NGOs.</p>
+            </div>
+            <div class="row g-4 justify-content-center">
+                <div class="col-lg-7 reveal">
+                    <div class="video-player-card">
+                        <div class="video-thumbnail" id="videoThumb">
+                            <img src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Ad Video" class="video-bg-img">
+                            <div class="video-overlay">
+                                <button class="video-play-btn" id="watchBtn" onclick="watchVideo()">
+                                    <i class="bi bi-play-fill"></i>
+                                </button>
+                                <span class="video-label">Watch this ad to earn Rs. 10</span>
+                            </div>
+                        </div>
+                        <div class="video-footer">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="badge-video-reward">
+                                    <i class="bi bi-coin me-1"></i> +Rs. 10 per video
+                                </span>
+                                <span class="text-muted small">Ad by FreeHunger Partners</span>
+                            </div>
+                            <div id="creditsEarned" class="credits-earned-toast d-none">
+                                <i class="bi bi-check-circle-fill me-1"></i> +Rs. 10 Earned!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 reveal">
+                    <div class="video-stats-card">
+                        <h6 class="mb-3 fw-bold">Today's Progress</h6>
+                        <div class="today-video-stat">
+                            <span>Videos Watched</span>
+                            <strong id="videosWatched">0 / 10</strong>
+                        </div>
+                        <div class="progress my-2" style="height:8px;">
+                            <div class="progress-bar bg-success" id="videoProgress" style="width:0%"></div>
+                        </div>
+                        <p class="text-muted small mb-4">Watch 10 videos to unlock bonus Rs. 50!</p>
+                        <div class="video-reward-list">
+                            <div class="reward-row" id="reward-3">
+                                <i class="bi bi-circle text-muted"></i>
+                                <span>Watch 3 videos</span>
+                                <strong class="text-muted">Rs. 30</strong>
+                            </div>
+                            <div class="reward-row" id="reward-5">
+                                <i class="bi bi-circle text-muted"></i>
+                                <span>Watch 5 videos</span>
+                                <strong class="text-muted">Rs. 50</strong>
+                            </div>
+                            <div class="reward-row" id="reward-10">
+                                <i class="bi bi-circle text-muted"></i>
+                                <span>Watch 10 videos</span>
+                                <strong class="text-warning">Rs. 150</strong>
+                            </div>
+                        </div>
+                        <div id="videoLimitMsg" class="alert alert-warning mt-3 limit-msg-container">
+                            <i class="bi bi-clock-history me-2"></i>
+                            Daily limit reached. Resets in: <strong id="resetTimer">--:--:--</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 3. MISSIONS & REWARDS ===== -->
+    <section id="missions">
+        <div class="container">
+            <div class="section-title reveal">
+                <h2>Daily Missions</h2>
+                <p>Complete missions to earn bonus credits and unlock special rewards.</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4 reveal">
+                    <div class="mission-card" id="mission-videos">
+                        <div class="mission-header">
+                            <div class="mission-icon"><i class="bi bi-play-circle"></i></div>
+                            <span class="mission-status progress-status" id="missionVideoStatus">In Progress</span>
+                        </div>
+                        <h5>Watch 3 Videos</h5>
+                        <p class="text-muted">Watch at least 3 ads today to help us fund NGOs.</p>
+                        <div class="progress mt-3" style="height:8px;">
+                            <div class="progress-bar bg-success" id="missionVideoBar" style="width:0%"></div>
+                        </div>
+                        <div class="mission-footer">
+                            <span id="missionVideoCount">0 / 3</span>
+                            <span class="mission-reward">+Rs. 30 <i class="bi bi-coin"></i></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 reveal">
+                    <div class="mission-card in-progress" id="mission-donate">
+                        <div class="mission-header">
+                            <div class="mission-icon"><i class="bi bi-heart"></i></div>
+                            <span class="mission-status progress-status" id="missionDonateStatus">In Progress</span>
+                        </div>
+                        <h5>Donate to 1 NGO</h5>
+                        <p class="text-muted">Use your credits to donate to any NGO today.</p>
+                        <div class="progress mt-3" style="height:8px;">
+                            <div class="progress-bar bg-warning" id="missionDonateBar" style="width:0%"></div>
+                        </div>
+                        <div class="mission-footer">
+                            <span id="missionDonateCount">0 / 1</span>
+                            <span class="mission-reward">+Rs. 50 <i class="bi bi-coin"></i></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 reveal">
+                    <div class="mission-card in-progress">
+                        <div class="mission-header">
+                            <div class="mission-icon"><i class="bi bi-share"></i></div>
+                            <span class="mission-status progress-status">In Progress</span>
+                        </div>
+                        <h5>Invite a Friend</h5>
+                        <p class="text-muted">Share FreeHunger and earn when they join.</p>
+                        <div class="progress mt-3" style="height:8px;">
+                            <div class="progress-bar bg-warning" style="width:0%"></div>
+                        </div>
+                        <div class="mission-footer">
+                            <span>0 / 1</span>
+                            <span class="mission-reward">+Rs. 100 <i class="bi bi-coin"></i></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 4 & 5. NGO LIST ===== -->
+    <section id="ngo-list" class="bg-light">
+        <div class="container">
+            <div class="section-title reveal">
+                <h2>Support NGOs & Schools</h2>
+                <p>Sorted by most urgent need — least funded appear first. Help them reach their goal!</p>
+            </div>
+
+            <div class="ngo-filter-bar reveal mb-4">
+                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="school">🏫 Schools</button>
+                        <button class="filter-btn" data-filter="ngo">🏢 NGOs</button>
+                        <button class="filter-btn" data-filter="verified">🟢 Verified Only</button>
+                    </div>
+                    <span class="text-muted small"><i class="bi bi-info-circle me-1"></i>Monthly reset: 14 days remaining</span>
+                </div>
+            </div>
+
+            <div class="row g-4" id="ngoGrid">
+                <!-- NGO Cards injected by JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 6. DONATE CREDITS ===== -->
+    <section id="donate-section">
+        <div class="container">
+            <div class="section-title reveal">
+                <h2>Donate Your Credits</h2>
+                <p>Every Rs. 100 in credits = 1 meal for a child. Select an NGO and donate now.</p>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-lg-6 reveal">
+                    <div class="donate-card">
+                        <div class="donate-balance">
+                            <span>Your Available Credits</span>
+                            <strong class="text-success">Rs. <span id="donateBalance">0</span></strong>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Select NGO / School</label>
+                            <select class="form-select" id="donateNGO">
+                                <option value="">-- Choose an NGO --</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Amount (Rs.)</label>
+                            <div class="quick-amounts d-flex gap-2 mb-3 flex-wrap">
+                                <button class="quick-amt-btn" onclick="setAmount(100)">Rs. 100</button>
+                                <button class="quick-amt-btn" onclick="setAmount(200)">Rs. 200</button>
+                                <button class="quick-amt-btn" onclick="setAmount(300)">Rs. 300</button>
+                                <button class="quick-amt-btn" onclick="setAmount(500)">Rs. 500</button>
+                            </div>
+                            <input type="number" class="form-control" id="donateAmount" placeholder="Or enter custom amount" min="50">
+                        </div>
+                        <div class="donate-impact-preview mb-4" id="impactPreview">
+                            <i class="bi bi-lightbulb me-2"></i>
+                            Rs. <span id="impactAmt">0</span> will provide <strong><span id="mealCount">0</span> meals</strong> to children.
+                        </div>
+                        <button class="btn btn-primary w-100 py-3 fw-bold" onclick="processDonation()">
+                            <i class="bi bi-heart-fill me-2"></i>Donate Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 7. IMPACT SECTION ===== -->
+    <section class="impact-section bg-light">
+        <div class="container">
+            <div class="section-title reveal">
+                <h2>Your Impact So Far</h2>
+                <p>Real numbers. Real lives. Every rupee you donate creates a ripple.</p>
+            </div>
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-3 col-6 reveal">
+                    <div class="impact-card">
+                        <div class="impact-icon" style="background:#f0fdf4;color:#10b981;">
+                            <i class="bi bi-basket2-fill"></i>
+                        </div>
+                        <h3 class="impact-number" id="impactMeals">0</h3>
+                        <p>Meals Provided</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 reveal">
+                    <div class="impact-card">
+                        <div class="impact-icon" style="background:#fff7ed;color:#f59e0b;">
+                            <i class="bi bi-building-check"></i>
+                        </div>
+                        <h3 class="impact-number" id="impactNGOs">0</h3>
+                        <p>NGOs Supported</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 reveal">
+                    <div class="impact-card">
+                        <div class="impact-icon" style="background:#fdf2f8;color:#a855f7;">
+                            <i class="bi bi-mortarboard-fill"></i>
+                        </div>
+                        <h3 class="impact-number" id="impactChildren">0</h3>
+                        <p>Children in School</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 reveal">
+                    <div class="impact-card">
+                        <div class="impact-icon" style="background:#fff1f2;color:#ef4444;">
+                            <i class="bi bi-heart-fill"></i>
+                        </div>
+                        <h3 class="impact-number" id="impactRupees">0</h3>
+                        <p>Rs. Donated</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Donation History -->
+            <div class="row mt-5 justify-content-center">
+                <div class="col-lg-7 reveal">
+                    <div class="donation-history-card">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-clock-history me-2 text-success"></i>Your Donation History</h6>
+                        <div class="history-list" id="donationHistory">
+                            <p class="text-muted text-center small py-3">No donations yet. Watch videos and donate!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 8. LEADERBOARD ===== -->
+    <section id="leaderboard">
+        <div class="container">
+            <div class="section-title reveal">
+                <h2>Top Helpers This Month</h2>
+                <p>Recognize the heroes making the biggest difference.</p>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-lg-7 reveal">
+                    <div class="leaderboard-card">
+                        <div class="leaderboard-list" id="leaderboardList"></div>
+                    </div>
+                </div>
+                <div class="col-lg-4 reveal">
+                    <div class="your-rank-card">
+                        <h6 class="fw-bold mb-1">Your Ranking</h6>
+                        <div class="rank-badge">#<span id="userRank">–</span></div>
+                        <p class="text-muted small">Out of 3,420 donors this month</p>
+                        <hr>
+                        <p class="text-muted small mb-1">Donate more to</p>
+                        <p class="text-muted small"><strong>enter Top 10!</strong> 🏆</p>
+                        <button class="btn btn-primary w-100 mt-3" onclick="scrollToNGO()">Donate Now</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 9. BADGES & GAMIFICATION ===== -->
+    <section class="badges-section bg-light">
+        <div class="container">
+            <div class="section-title reveal">
+                <h2>Your Achievements</h2>
+                <p>Level up by donating, watching videos, and supporting NGOs.</p>
+            </div>
+            <div class="row g-4 justify-content-center">
+                <div class="col-lg-9 reveal">
+                    <div class="level-card mb-4">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="level-badge bronze" id="levelBadge">Bronze</span>
+                                <div>
+                                    <h6 class="mb-0" id="levelText">Current Level: Bronze</h6>
+                                    <small class="text-muted" id="levelXP">0 / 10,000 XP to Silver</small>
+                                </div>
+                            </div>
+                            <span class="text-muted small" id="levelPct">0%</span>
+                        </div>
+                        <div class="progress" style="height:12px;">
+                            <div class="progress-bar level-progress" id="levelProgressBar" style="width:0%"></div>
+                        </div>
+                        <div class="level-milestones mt-3">
+                            <span class="milestone active">Bronze</span>
+                            <span class="milestone">Silver (10k XP)</span>
+                            <span class="milestone">Gold (50k XP)</span>
+                        </div>
+                    </div>
+                    <div class="row g-3" id="badgesGrid">
+                        <!-- Badges injected by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== DONATION SUCCESS MODAL ===== -->
+    <div class="modal fade" id="donationModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-center p-4">
+                <div class="modal-body">
+                    <div class="success-animation mb-3" style="font-size: 3rem; color: #10b981;"><i class="bi bi-check-circle-fill"></i></div>
+                    <h4 class="fw-bold">Donation Successful!</h4>
+                    <p class="text-muted" id="modalMessage">Your donation has been processed.</p>
+                    <div class="impact-highlight mt-3 mb-4">
+                        <i class="bi bi-basket2-fill me-2 text-success"></i>
+                        You just provided <strong id="modalMeals">0 meals</strong> to children in need.
+                    </div>
+                    <button class="btn btn-primary px-5" data-bs-dismiss="modal">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PROFILE SETTINGS MODAL ===== -->
+    <div class="modal fade" id="profileSettingsModal" tabindex="-1" aria-labelledby="profileSettingsLabel">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content profile-modal-content">
+
+                <div class="modal-header profile-modal-header">
+                    <h5 class="modal-title fw-bold" id="profileSettingsLabel">
+                        <i class="bi bi-person-gear me-2"></i>Edit Your Profile
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div class="row g-4">
+
+                        <!-- LEFT: Avatar -->
+                        <div class="col-md-4 text-center">
+                            <p class="fw-semibold mb-3">Profile Avatar</p>
+
+                            <!-- Current avatar preview -->
+                            <div class="profile-avatar-preview" id="profileAvatarPreview">
+                                <span id="profileAvatarEmoji" style="font-size:3rem;"><i class="bi bi-person-circle"></i></span>
+                            </div>
+                            <p class="text-muted small mt-2">Choose your avatar profile</p>
+
+                            <!-- Emoji Picker -->
+                            <div class="emoji-picker-grid mt-3" id="emojiPickerGrid">
+                                <!-- injected by JS -->
+                            </div>
+
+                            <hr class="my-3">
+                            <p class="fw-semibold mb-2" style="font-size:0.85rem;">Avatar Color</p>
+                            <div class="avatar-color-grid" id="avatarColorGrid">
+                                <!-- injected by JS -->
+                            </div>
+                        </div>
+
+                        <!-- RIGHT: Form Fields -->
+                        <div class="col-md-8">
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold small">First Name</label>
+                                    <input type="text" class="form-control" id="profileFirstName" placeholder="Ahmed">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold small">Last Name</label>
+                                    <input type="text" class="form-control" id="profileLastName" placeholder="Raza">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold small">City</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-geo-alt-fill text-success"></i></span>
+                                        <input type="text" class="form-control" id="profileCity" placeholder="Karachi, Lahore, Islamabad...">
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold small">Bio (Optional)</label>
+                                    <textarea class="form-control" id="profileBio" rows="2"
+                                        placeholder="Tell us a bit about yourself..." maxlength="120"></textarea>
+                                    <small class="text-muted" id="bioCharCount">0 / 120</small>
+                                </div>
+
+                                <!-- Read-only info -->
+                                <div class="col-12">
+                                    <div class="profile-readonly-box">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="fw-semibold small">Email</span>
+                                            <span class="text-muted small" id="profileEmailDisplay">—</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="fw-semibold small">Joined</span>
+                                            <span class="text-muted small" id="profileJoinedDate">—</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="fw-semibold small">Level</span>
+                                            <span class="text-muted small" id="profileLevelDisplay">🥉 Bronze</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Save button -->
+                                <div class="col-12">
+                                    <div id="profileSaveMsg" class="profile-save-msg d-none"></div>
+                                    <button class="btn btn-primary w-100 py-3 fw-bold" id="saveProfileBtn"
+                                            onclick="saveProfile()">
+                                        <i class="bi bi-check-circle-fill me-2"></i>
+                                        <span id="saveProfileBtnText">Save Profile</span>
+                                        <span id="saveProfileSpinner" class="spinner-border spinner-border-sm ms-2 d-none"></span>
+                                    </button>
+                                </div>
+
+                                <!-- Danger zone -->
+                                <div class="col-12">
+                                    <hr>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="fw-semibold mb-0 small">Logout</p>
+                                            <small class="text-muted">Logout from this device</small>
+                                        </div>
+                                        <button class="btn btn-outline-danger btn-sm px-3"
+                                            onclick="firebase.auth().signOut().then(()=>window.location.href='index.html')">
+                                            <i class="bi bi-box-arrow-right me-1"></i>Logout
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ── FOOTER (injected by components.js) ── -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Firebase CDN -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+
+    <!-- Shared components -->
+    <script src="js/components.js"></script>
+    <script>FHComponents.init('dashboard');</script>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

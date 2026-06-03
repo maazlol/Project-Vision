@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Vision | Verify Email</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/global.css">
+    <style>
+        .verify-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f9fafb;
+            padding: 20px;
+        }
+        .verify-card {
+            max-width: 450px;
+            width: 100%;
+            background: white;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        .status-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+        }
+        .status-icon.success { color: #10b981; }
+        .status-icon.error { color: #ef4444; }
+        .status-icon.loading { color: #6b7280; animation: spin 2s linear infinite; }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="verify-page">
+        <div class="verify-card">
+            <div id="statusIcon" class="status-icon loading">
+                <i class="bi bi-arrow-repeat"></i>
+            </div>
+            <h3 id="statusTitle" class="fw-bold mb-3">Verifying Your Email...</h3>
+            <p id="statusMsg" class="text-muted mb-4">Please wait a moment while we confirm your identity and secure your account.</p>
+            
+            <div id="actionArea" class="d-none">
+                <a href="login.html" class="btn btn-primary w-100 py-3 fw-bold">Proceed to Login</a>
+            </div>
+
+            <div id="resetArea" class="d-none text-start">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">New Password</label>
+                    <div class="position-relative">
+                        <input type="password" id="newPassword" class="form-control py-3" style="padding-left: 45px; border-radius: 12px;" placeholder="Min. 8 characters">
+                        <i class="bi bi-lock position-absolute top-50 translate-middle-y ms-3 text-muted"></i>
+                        <button type="button" id="togglePass" class="btn position-absolute top-50 end-0 translate-middle-y me-2 text-muted border-0 shadow-none">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    <div id="passwordHelp" class="form-text mt-2 small">Must include letters and numbers.</div>
+                </div>
+                <button id="resetBtn" class="btn btn-primary w-100 py-3 fw-bold">Update Password</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const auth = firebase.auth();
+            const statusIcon = document.getElementById('statusIcon');
+            const statusTitle = document.getElementById('statusTitle');
+            const statusMsg = document.getElementById('statusMsg');
+            const actionArea = document.getElementById('actionArea');
+            const resetArea = document.getElementById('resetArea');
+            const resetBtn = document.getElementById('resetBtn');
+            const newPasswordInput = document.getElementById('newPassword');
+            const togglePassBtn = document.getElementById('togglePass');
+
+            // URL se mode aur actionCode (oobCode) nikalna
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode');
+            const actionCode = urlParams.get('oobCode');
+
+            if (mode === 'verifyEmail' && actionCode) {
+                // Email Verification Logic
+                auth.applyActionCode(actionCode).then(() => {
+                    statusIcon.className = 'status-icon success';
+                    statusIcon.innerHTML = '<i class="bi bi-patch-check-fill"></i>';
+                    statusTitle.textContent = 'Email Verified!';
+                    statusMsg.textContent = 'Awesome! Your email has been successfully verified. You can now log in to your account.';
+                    actionArea.classList.remove('d-none');
+                }).catch((error) => {
+                    statusIcon.className = 'status-icon error';
+                    statusIcon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+                    statusTitle.textContent = 'Verification Failed';
+                    statusMsg.textContent = 'This link is invalid or has already been used. Please try to request a new verification email from the login page.';
+                    actionArea.classList.remove('d-none');
+                });
+            } else if (mode === 'resetPassword' && actionCode) {
+                // Password Reset UI
+                statusIcon.className = 'status-icon';
+                statusIcon.style.color = '#3b82f6';
+                statusIcon.innerHTML = '<i class="bi bi-shield-lock-fill"></i>';
+                statusTitle.textContent = 'Reset Password';
+                statusMsg.textContent = 'Please enter a strong new password for your account below.';
+                resetArea.classList.remove('d-none');
+
+                // Handle Reset Submission
+                resetBtn.onclick = () => {
+                    const newPassword = newPasswordInput.value;
+                    if (newPassword.length < 8 || !/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+                        alert("Password must be at least 8 characters long and include both letters and numbers.");
+                        return;
+                    }
+
+                    resetBtn.disabled = true;
+                    resetBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
+
+                    auth.confirmPasswordReset(actionCode, newPassword).then(() => {
+                        statusIcon.className = 'status-icon success';
+                        statusIcon.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+                        statusTitle.textContent = 'Password Updated!';
+                        statusMsg.textContent = 'Success! Your password has been reset. You can now use your new password to log in.';
+                        resetArea.classList.add('d-none');
+                        actionArea.classList.remove('d-none');
+                    }).catch((error) => {
+                        console.error(error);
+                        alert("Error: " + error.message);
+                        resetBtn.disabled = false;
+                        resetBtn.textContent = 'Update Password';
+                    });
+                };
+
+                // Toggle Password Visibility
+                togglePassBtn.onclick = () => {
+                    const type = newPasswordInput.type === 'password' ? 'text' : 'password';
+                    newPasswordInput.type = type;
+                    togglePassBtn.innerHTML = type === 'password' ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+                };
+
+            } else {
+                statusIcon.className = 'status-icon error';
+                statusIcon.innerHTML = '<i class="bi bi-bug-fill"></i>';
+                statusTitle.textContent = 'Invalid Request';
+                statusMsg.textContent = 'The link appears to be broken. Please make sure you copied the full URL from your email.';
+                actionArea.classList.remove('d-none');
+            }
+        });
+    </script>
+</body>
+</html>
