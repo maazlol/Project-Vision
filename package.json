@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "pages:build": "cd We3Project && npm run build && cd .. && if exist docs rmdir /s /q docs && xcopy /E /I We3Project\\dist docs > nul && type nul > docs\\.nojekyll"
+  },
   "dependencies": {
     "@types/leaflet": "^1.9.21",
     "leaflet": "^1.9.4",
