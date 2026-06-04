@@ -23,12 +23,26 @@
   --primary-dark: #059669;
 }
 
+* {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden;
   color: #1f2937;
   background-color: #f9fafb;
+}
+
+img {
+  display: block;
+  max-width: 100%;
 }
 
 @layer components {
