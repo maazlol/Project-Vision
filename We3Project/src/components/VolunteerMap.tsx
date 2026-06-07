@@ -63,10 +63,19 @@ const VolunteerMap: React.FC = () => {
     // Fetch NGOs
     const q = query(collection(db, 'ngos'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ngoList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as NGO[];
+      const ngoList = snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Safe coordinate check with Karachi fallback [24.8607, 67.0011]
+        const lat = typeof data.latitude === 'number' ? data.latitude : 24.8607;
+        const lng = typeof data.longitude === 'number' ? data.longitude : 67.0011;
+        
+        return {
+          id: doc.id, // Using stable doc.id
+          ...data,
+          latitude: lat,
+          longitude: lng
+        };
+      }) as NGO[];
 
       const mergedNgos = ngoList.length ? ngoList : fallbackNgos;
       setNgos(mergedNgos);
@@ -157,8 +166,8 @@ const VolunteerMap: React.FC = () => {
             <div className="space-y-6">
               <div className="h-[360px] rounded-[2.5rem] border-8 border-white shadow-2xl shadow-slate-200/70 relative z-0 overflow-hidden lg:h-[420px]">
                 <MapContainer
-                  center={userLocation || [30.3753, 69.3451]}
-                  zoom={5}
+                  center={[24.8607, 67.0011]}
+                  zoom={12}
                   style={{ height: '100%', width: '100%' }}
                 >
                   <TileLayer

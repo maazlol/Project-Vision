@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard';
 import Settings from './components/Settings';
 import Feed from './components/Feed';
 import VolunteerForm from './components/VolunteerForm';
+import SponsorPage from './components/SponsorPage';
 import { useEffect } from 'react';
 
 function App() {
@@ -59,7 +60,7 @@ function App() {
           <Route path="/about" element={<div className="pt-32 pb-20 container mx-auto px-4"><h1 className="text-4xl font-black">About Us</h1><p className="mt-4 text-slate-600">FreeHunger is a community-driven platform...</p></div>} />
           <Route path="/news" element={<div className="pt-32 pb-20 container mx-auto px-4"><h1 className="text-4xl font-black">Latest News</h1><p className="mt-4 text-slate-600">Stay updated with our impact stories...</p></div>} />
           <Route path="/blog" element={<div className="pt-32 pb-20 container mx-auto px-4"><h1 className="text-4xl font-black">Blog</h1><p className="mt-4 text-slate-600">Read our latest articles on social change...</p></div>} />
-          <Route path="/sponsor" element={<div className="pt-32 pb-20 container mx-auto px-4"><h1 className="text-4xl font-black">Sponsor Us</h1><p className="mt-4 text-slate-600">Support our mission to end hunger...</p></div>} />
+          <Route path="/sponsor" element={<SponsorPage />} />
           {/* Fallback */}
           <Route path="*" element={<Home />} />
         </Routes>

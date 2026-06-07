@@ -33,6 +33,12 @@ export default function DonationRequestForm({ ngos, selectedNgo, onSubmit }: Don
     transport: 'google_maps',
     quantity: '1 box',
     notes: '',
+    // Sub-fields
+    vehicleNumber: '',
+    estimatedArrival: '',
+    driverName: '',
+    trackingLink: '',
+    dropoffTime: '',
   });
 
   useEffect(() => {
@@ -57,6 +63,7 @@ export default function DonationRequestForm({ ngos, selectedNgo, onSubmit }: Don
 
     switch (formData.transport) {
       case 'google_maps':
+      case 'self_drive':
         return `https://www.google.com/maps/search/?api=1&query=${query}`;
       case 'indrive':
         return 'https://www.indrive.com/';
@@ -155,11 +162,76 @@ export default function DonationRequestForm({ ngos, selectedNgo, onSubmit }: Don
           className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
         >
           <option value="google_maps">Google Maps</option>
+          <option value="self_drive">Self-Drive</option>
           <option value="indrive">InDrive</option>
           <option value="careem">Careem</option>
           <option value="bykea">Bykea</option>
         </select>
       </label>
+
+      {/* Conditional Sub-fields */}
+      {formData.transport === 'self_drive' && (
+        <div className="grid gap-4 md:grid-cols-2 animate-in fade-in slide-in-from-top-2">
+          <label className="space-y-2 text-sm font-semibold text-slate-600">
+            Vehicle Number
+            <input
+              value={formData.vehicleNumber}
+              onChange={(e) => setFormData((prev) => ({ ...prev, vehicleNumber: e.target.value }))}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
+              placeholder="e.g. ABC-123"
+            />
+          </label>
+          <label className="space-y-2 text-sm font-semibold text-slate-600">
+            Estimated Arrival Time
+            <input
+              type="time"
+              value={formData.estimatedArrival}
+              onChange={(e) => setFormData((prev) => ({ ...prev, estimatedArrival: e.target.value }))}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
+            />
+          </label>
+          <label className="col-span-full space-y-2 text-sm font-semibold text-slate-600">
+            Upload Document/Photo
+            <input
+              type="file"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm outline-none transition focus:border-emerald-500 file:mr-4 file:rounded-full file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-xs file:font-bold file:text-emerald-700 hover:file:bg-emerald-100"
+            />
+          </label>
+        </div>
+      )}
+
+      {formData.transport === 'indrive' && (
+        <div className="grid gap-4 md:grid-cols-2 animate-in fade-in slide-in-from-top-2">
+          <label className="space-y-2 text-sm font-semibold text-slate-600">
+            Driver Name
+            <input
+              value={formData.driverName}
+              onChange={(e) => setFormData((prev) => ({ ...prev, driverName: e.target.value }))}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
+              placeholder="Enter driver name"
+            />
+          </label>
+          <label className="space-y-2 text-sm font-semibold text-slate-600">
+            Tracking Link
+            <input
+              type="url"
+              value={formData.trackingLink}
+              onChange={(e) => setFormData((prev) => ({ ...prev, trackingLink: e.target.value }))}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
+              placeholder="https://..."
+            />
+          </label>
+          <label className="col-span-full space-y-2 text-sm font-semibold text-slate-600">
+            Dropoff Time
+            <input
+              type="time"
+              value={formData.dropoffTime}
+              onChange={(e) => setFormData((prev) => ({ ...prev, dropoffTime: e.target.value }))}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
+            />
+          </label>
+        </div>
+      )}
 
       <label className="space-y-2 text-sm font-semibold text-slate-600">
         Notes
@@ -185,14 +257,7 @@ export default function DonationRequestForm({ ngos, selectedNgo, onSubmit }: Don
         className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-700"
       >
         <Send size={16} />
-        Open route in {formData.transport === 'google_maps' ? 'Google Maps' : formData.transport === 'indrive' ? 'InDrive' : formData.transport === 'careem' ? 'Careem' : 'Bykea'}
-      </button>
-
-      <button
-        type="submit"
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50"
-      >
-        Submit donation request
+        Open route in {formData.transport === 'google_maps' ? 'Google Maps' : formData.transport === 'self_drive' ? 'Self-Drive' : formData.transport === 'indrive' ? 'InDrive' : formData.transport === 'careem' ? 'Careem' : 'Bykea'}
       </button>
     </form>
   );

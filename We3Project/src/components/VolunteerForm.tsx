@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { db, auth } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Heart, Send, User, Mail, Phone, MapPin, Briefcase, MessageSquare, Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Heart, Send, User, Mail, Phone, MapPin, Briefcase, MessageSquare, Loader2, CheckCircle, ArrowLeft, CreditCard } from 'lucide-react';
 import { useToast } from './Toast';
 
 export default function VolunteerForm() {
@@ -10,10 +10,18 @@ export default function VolunteerForm() {
     name: '',
     email: '',
     phone: '',
+    cnic: '',
     city: '',
     interests: 'food_distribution',
     bio: ''
   });
+
+  const formatCNIC = (value: string) => {
+    const val = value.replace(/\D/g, '');
+    if (val.length <= 5) return val;
+    if (val.length <= 12) return `${val.slice(0, 5)}-${val.slice(5)}`;
+    return `${val.slice(0, 5)}-${val.slice(5, 12)}-${val.slice(12, 13)}`;
+  };
   const [loading, setLoading] = useState(false);
   const [submitted, setSuccess] = useState(false);
   const { showToast } = useToast();
@@ -173,6 +181,21 @@ export default function VolunteerForm() {
                       onChange={(e) => setFormData({...formData, phone: e.target.value})}
                       className="w-full bg-slate-50 border-0 focus:ring-2 focus:ring-emerald-500 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-medium transition-all"
                       placeholder="+92 3XX XXXXXXX"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">CNIC / National ID</label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input 
+                      type="text" 
+                      required
+                      value={formData.cnic}
+                      onChange={(e) => setFormData({...formData, cnic: formatCNIC(e.target.value)})}
+                      className="w-full bg-slate-50 border-0 focus:ring-2 focus:ring-emerald-500 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-medium transition-all"
+                      placeholder="XXXXX-XXXXXXX-X"
+                      maxLength={15}
                     />
                   </div>
                 </div>
