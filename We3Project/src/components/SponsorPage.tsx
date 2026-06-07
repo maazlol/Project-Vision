@@ -12,8 +12,7 @@ import {
   MapPin, 
   Hash,
   Send,
-  Package,
-  FileText
+  Package
 } from 'lucide-react';
 
 export default function SponsorPage() {
