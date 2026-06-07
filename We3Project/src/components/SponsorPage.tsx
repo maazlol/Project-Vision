@@ -245,8 +245,8 @@ function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField label="Full Name" icon={<User size={18} />} placeholder="Enter your name" value={formData.name} onChange={(v: string) => setFormData({...formData, name: v})} />
-          <FormField label="Email Address" icon={<Mail size={18} />} placeholder="your@email.com" type="email" value={formData.email} onChange={(v) => setFormData({...formData, email: v})} />
-          <FormField label="CNIC / National ID" icon={<CreditCard size={18} />} placeholder="XXXXX-XXXXXXX-X" maxLength={15} value={formData.cnic} onChange={(v) => setFormData({...formData, cnic: formatCNIC(v)})} />
+          <FormField label="Email Address" icon={<Mail size={18} />} placeholder="your@email.com" type="email" value={formData.email} onChange={(v: string) => setFormData({...formData, email: v})} />
+          <FormField label="CNIC / National ID" icon={<CreditCard size={18} />} placeholder="XXXXX-XXXXXXX-X" maxLength={15} value={formData.cnic} onChange={(v: string) => setFormData({...formData, cnic: formatCNIC(v)})} />
           
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Where to Donate</label>
