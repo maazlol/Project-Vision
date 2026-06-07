@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { 
   Building2, 
   User, 
@@ -12,7 +12,8 @@ import {
   MapPin, 
   Hash,
   Send,
-  Package
+  Package,
+  FileText
 } from 'lucide-react';
 
 export default function SponsorPage() {
@@ -87,6 +88,12 @@ function CorporateForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
     transactionId: ''
   });
 
+  const [adFile, setAdFile] = useState<File | null>(null);
+  const [paymentFile, setPaymentFile] = useState<File | null>(null);
+  
+  const adInputRef = useRef<HTMLInputElement>(null);
+  const paymentInputRef = useRef<HTMLInputElement>(null);
+
   return (
     <div className="p-8 md:p-12">
       {/* Guidelines Alert */}
@@ -125,11 +132,23 @@ function CorporateForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
         {/* Ad Assets Upload */}
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Ad Banners / Video Creatives</label>
-          <div className="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer group">
+          <input 
+            type="file" 
+            ref={adInputRef}
+            className="hidden"
+            onChange={(e) => setAdFile(e.target.files?.[0] || null)}
+            accept="video/*,image/*"
+          />
+          <div 
+            onClick={() => adInputRef.current?.click()}
+            className="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer group"
+          >
             <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
               <Upload className="text-slate-400 group-hover:text-emerald-500" size={24} />
             </div>
-            <p className="text-sm font-bold text-slate-700">Click to upload or drag and drop</p>
+            <p className="text-sm font-bold text-slate-700">
+              {adFile ? `File Selected: ${adFile.name}` : 'Click to upload or drag and drop'}
+            </p>
             <p className="text-xs text-slate-400 mt-1">MP4, PNG, JPG or GIF (Max 50MB)</p>
           </div>
         </div>
@@ -171,9 +190,21 @@ function CorporateForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
             
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Upload Payment Screenshot / Receipt (PNG, JPG)</label>
-              <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer group">
+              <input 
+                type="file" 
+                ref={paymentInputRef}
+                className="hidden"
+                onChange={(e) => setPaymentFile(e.target.files?.[0] || null)}
+                accept="image/*"
+              />
+              <div 
+                onClick={() => paymentInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer group"
+              >
                 <Upload className="text-slate-400 group-hover:text-emerald-500 mx-auto mb-2" size={20} />
-                <p className="text-[11px] font-bold text-slate-700">Click to upload screenshot</p>
+                <p className="text-[11px] font-bold text-slate-700">
+                  {paymentFile ? `Screenshot: ${paymentFile.name}` : 'Click to upload screenshot'}
+                </p>
               </div>
             </div>
           </div>
@@ -207,13 +238,16 @@ function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
     transactionId: ''
   });
 
+  const [paymentFile, setPaymentFile] = useState<File | null>(null);
+  const paymentInputRef = useRef<HTMLInputElement>(null);
+
   return (
     <div className="p-8 md:p-12">
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField label="Full Name" icon={<User size={18} />} placeholder="Enter your name" value={formData.name} onChange={(v: string) => setFormData({...formData, name: v})} />
-          <FormField label="Email Address" icon={<Mail size={18} />} placeholder="your@email.com" type="email" value={formData.email} onChange={(v: string) => setFormData({...formData, email: v})} />
-          <FormField label="CNIC / National ID" icon={<CreditCard size={18} />} placeholder="XXXXX-XXXXXXX-X" maxLength={15} value={formData.cnic} onChange={(v: string) => setFormData({...formData, cnic: formatCNIC(v)})} />
+          <FormField label="Email Address" icon={<Mail size={18} />} placeholder="your@email.com" type="email" value={formData.email} onChange={(v) => setFormData({...formData, email: v})} />
+          <FormField label="CNIC / National ID" icon={<CreditCard size={18} />} placeholder="XXXXX-XXXXXXX-X" maxLength={15} value={formData.cnic} onChange={(v) => setFormData({...formData, cnic: formatCNIC(v)})} />
           
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Where to Donate</label>
@@ -306,9 +340,21 @@ function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
             
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Upload Payment Screenshot / Receipt (PNG, JPG)</label>
-              <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer group">
+              <input 
+                type="file" 
+                ref={paymentInputRef}
+                className="hidden"
+                onChange={(e) => setPaymentFile(e.target.files?.[0] || null)}
+                accept="image/*"
+              />
+              <div 
+                onClick={() => paymentInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer group"
+              >
                 <Upload className="text-slate-400 group-hover:text-emerald-500 mx-auto mb-2" size={20} />
-                <p className="text-[11px] font-bold text-slate-700">Click to upload screenshot</p>
+                <p className="text-[11px] font-bold text-slate-700">
+                  {paymentFile ? `Screenshot: ${paymentFile.name}` : 'Click to upload screenshot'}
+                </p>
               </div>
             </div>
           </div>
