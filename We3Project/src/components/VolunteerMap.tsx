@@ -55,7 +55,6 @@ const VolunteerMap: React.FC = () => {
   const [ngos, setNgos] = useState<NGO[]>([]);
   const [selectedNgo, setSelectedNgo] = useState<NGO | null>(fallbackNgos[0]);
   const [showForm, setShowForm] = useState(false);
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const formRef = useRef<HTMLDivElement | null>(null);
   const { showToast } = useToast();
 
@@ -84,13 +83,6 @@ const VolunteerMap: React.FC = () => {
         setSelectedNgo(mergedNgos[0]);
       }
     });
-
-    // Get user location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
-      });
-    }
 
     return () => unsubscribe();
   }, []);

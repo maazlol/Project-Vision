@@ -99,11 +99,11 @@ function CorporateForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
 
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField label="Company Name" icon={<Building size={18} />} placeholder="Enter company name" value={formData.companyName} onChange={(v) => setFormData({...formData, companyName: v})} />
-          <FormField label="Contact Person Name" icon={<User size={18} />} placeholder="Full name" value={formData.contactName} onChange={(v) => setFormData({...formData, contactName: v})} />
-          <FormField label="Contact CNIC" icon={<CreditCard size={18} />} placeholder="XXXXX-XXXXXXX-X" maxLength={15} value={formData.cnic} onChange={(v) => setFormData({...formData, cnic: formatCNIC(v)})} />
-          <FormField label="Business Email" icon={<Mail size={18} />} placeholder="company@email.com" type="email" value={formData.email} onChange={(v) => setFormData({...formData, email: v})} />
-          <FormField label="Phone Number" icon={<Phone size={18} />} placeholder="+92 3XX XXXXXXX" value={formData.phone} onChange={(v) => setFormData({...formData, phone: v})} />
+          <FormField label="Company Name" icon={<Building size={18} />} placeholder="Enter company name" value={formData.companyName} onChange={(v: string) => setFormData({...formData, companyName: v})} />
+          <FormField label="Contact Person Name" icon={<User size={18} />} placeholder="Full name" value={formData.contactName} onChange={(v: string) => setFormData({...formData, contactName: v})} />
+          <FormField label="Contact CNIC" icon={<CreditCard size={18} />} placeholder="XXXXX-XXXXXXX-X" maxLength={15} value={formData.cnic} onChange={(v: string) => setFormData({...formData, cnic: formatCNIC(v)})} />
+          <FormField label="Business Email" icon={<Mail size={18} />} placeholder="company@email.com" type="email" value={formData.email} onChange={(v: string) => setFormData({...formData, email: v})} />
+          <FormField label="Phone Number" icon={<Phone size={18} />} placeholder="+92 3XX XXXXXXX" value={formData.phone} onChange={(v: string) => setFormData({...formData, phone: v})} />
           
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Budget Tier</label>
@@ -211,9 +211,9 @@ function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
     <div className="p-8 md:p-12">
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField label="Full Name" icon={<User size={18} />} placeholder="Enter your name" value={formData.name} onChange={(v) => setFormData({...formData, name: v})} />
-          <FormField label="Email Address" icon={<Mail size={18} />} placeholder="your@email.com" type="email" value={formData.email} onChange={(v) => setFormData({...formData, email: v})} />
-          <FormField label="CNIC / National ID" icon={<CreditCard size={18} />} placeholder="XXXXX-XXXXXXX-X" maxLength={15} value={formData.cnic} onChange={(v) => setFormData({...formData, cnic: formatCNIC(v)})} />
+          <FormField label="Full Name" icon={<User size={18} />} placeholder="Enter your name" value={formData.name} onChange={(v: string) => setFormData({...formData, name: v})} />
+          <FormField label="Email Address" icon={<Mail size={18} />} placeholder="your@email.com" type="email" value={formData.email} onChange={(v: string) => setFormData({...formData, email: v})} />
+          <FormField label="CNIC / National ID" icon={<CreditCard size={18} />} placeholder="XXXXX-XXXXXXX-X" maxLength={15} value={formData.cnic} onChange={(v: string) => setFormData({...formData, cnic: formatCNIC(v)})} />
           
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Where to Donate</label>
@@ -262,8 +262,8 @@ function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
 
             {formData.ngoNotListed && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 animate-slide-in-top">
-                <FormField label="Custom NGO Name" icon={<Building2 size={18} />} placeholder="Enter NGO name" value={formData.customNgoName} onChange={(v) => setFormData({...formData, customNgoName: v})} />
-                <FormField label="NGO Location Address" icon={<MapPin size={18} />} placeholder="Area/City" value={formData.ngoLocation} onChange={(v) => setFormData({...formData, ngoLocation: v})} />
+                <FormField label="Custom NGO Name" icon={<Building2 size={18} />} placeholder="Enter NGO name" value={formData.customNgoName} onChange={(v: string) => setFormData({...formData, customNgoName: v})} />
+                <FormField label="NGO Location Address" icon={<MapPin size={18} />} placeholder="Area/City" value={formData.ngoLocation} onChange={(v: string) => setFormData({...formData, ngoLocation: v})} />
               </div>
             )}
           </div>
