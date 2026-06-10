@@ -4,10 +4,12 @@ import NavBrand from './Navbar/NavBrand';
 import NavLink from './Navbar/NavLink';
 import UserActions from './Navbar/UserActions';
 import MobileMenu from './Navbar/MobileMenu';
+import { useUserRole } from '../lib/useUserRole';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const { profile } = useUserRole();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -26,6 +28,11 @@ const Navbar = () => {
     { name: 'Sponsor', path: '/sponsor' },
     { name: 'About', path: '/about' },
   ];
+
+  // Only show Admin to admin users
+  if (profile?.role === 'admin') {
+    navLinks.push({ name: 'Admin', path: '/admin' });
+  }
 
   return (
     <nav className={`fixed-top transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-2' : 'bg-white py-3'}`} id="mainNav">

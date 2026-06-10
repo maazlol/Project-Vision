@@ -8,6 +8,7 @@ import Settings from './components/Settings';
 import Feed from './components/Feed';
 import VolunteerForm from './components/VolunteerForm';
 import SponsorPage from './components/SponsorPage';
+import AdminPanel from './components/AdminPanel';
 import { useEffect } from 'react';
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/admin" element={<AdminPanel />} />
           <Route path="/feed" element={
             <div className="pt-16"> {/* Spacer for fixed navbar */}
               <div className="bg-emerald-600 text-white py-8 md:py-10">

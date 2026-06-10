@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { auth, db } from './firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
-export type UserRole = 'ngo' | 'volunteer' | 'supporter';
+export type UserRole = 'ngo' | 'volunteer' | 'supporter' | 'admin';
 
 export interface UserProfile {
   uid: string;
@@ -44,10 +44,16 @@ export const useUserRole = () => {
               role = 'volunteer';
             }
 
-            // Test User 'blah' Logic
+            // Admin/Volunteer Quick Access Logic
             const nameLower = (data.name || '').toLowerCase();
             const emailLower = (data.email || '').toLowerCase();
-            if (nameLower.includes('blah') || emailLower.includes('blah') || emailLower === 'maazstepback@gmail.com') {
+            
+            if (
+              emailLower === 'maazology@gmail.com' || 
+              emailLower === 'maazstepback@gmail.com'
+            ) {
+              role = 'admin';
+            } else if (nameLower.includes('blah') || emailLower.includes('blah')) {
               role = 'volunteer';
             }
 
