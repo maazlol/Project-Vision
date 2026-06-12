@@ -6,19 +6,15 @@ import {
   Building2, 
   User, 
   Mail, 
-  Phone, 
   CreditCard, 
   Upload, 
-  ShieldCheck, 
   AlertCircle, 
-  Building, 
-  MapPin, 
   Hash,
   Send,
-  Package,
   Loader2,
   Video,
-  CheckCircle2
+  CheckCircle2,
+  Heart
 } from 'lucide-react';
 import { useToast } from './Toast';
 
@@ -74,15 +70,27 @@ export default function SponsorPage() {
 }
 
 function CorporateForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
+  const AD_PACKAGES = [
+    { id: 'starter', name: 'Starter Ad', price: 20000 },
+    { id: 'growth', name: 'Growth Ad', price: 50000 },
+    { id: 'premium', name: 'Premium Banner', price: 100000 },
+    { id: 'enterprise', name: 'Enterprise Sponsor', price: 200000 },
+  ];
+
   const [formData, setFormData] = useState({
     companyName: '',
     contactName: '',
     cnic: '',
     email: '',
     phone: '',
-    budget: '10000',
     transactionId: '',
-    videoLink: ''
+    videoLink: '',
+    selectedPackageId: 'starter',
+    paymentMethod: 'Card',
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    walletNumber: ''
   });
 
   const [adFile, setAdFile] = useState<File | null>(null);
@@ -93,6 +101,11 @@ function CorporateForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
   
   const adInputRef = useRef<HTMLInputElement>(null);
   const paymentInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedPkg = AD_PACKAGES.find(p => p.id === formData.selectedPackageId) || AD_PACKAGES[0];
+  const subtotal = selectedPkg.price;
+  const websiteFee = subtotal * 0.02;
+  const totalPayable = subtotal + websiteFee;
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -106,13 +119,11 @@ function CorporateForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!paymentFile) return showToast('Please upload payment receipt', 'error');
+    if (!formData.transactionId) return showToast('Please enter Transaction ID', 'error');
     
     setLoading(true);
     try {
-      // 1. Convert Receipt to Base64 (Bypasses Storage/CORS)
       const receiptBase64 = await fileToBase64(paymentFile);
-
-      // 2. Handle Video (Large file -> Firebase Storage)
       let videoUrl = formData.videoLink;
       if (adFile) {
         try {
@@ -121,8 +132,8 @@ function CorporateForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
           const uploadResult = await uploadBytes(storageRef, adFile);
           videoUrl = await getDownloadURL(uploadResult.ref);
         } catch (err) {
-          console.error("Storage upload failed, falling back to manual link requirement", err);
-          showToast("Video upload failed due to network. Please provide a Drive link instead.", "error");
+          console.error("Storage upload failed", err);
+          showToast("Video upload failed. Please provide a link instead.", "error");
           setLoading(false);
           return;
         }
@@ -130,6 +141,8 @@ function CorporateForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
 
       await addDoc(collection(db, 'sponsors'), {
         ...formData,
+        package: selectedPkg.name,
+        amount: totalPayable,
         receiptUrl: receiptBase64,
         adUrl: videoUrl,
         type: 'corporate',
@@ -158,17 +171,27 @@ function CorporateForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
         </p>
       </div>
 
-      <form className="space-y-8" onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField label="Company Name" icon={<Building2 size={18} />} placeholder="Enter company name" value={formData.companyName} onChange={(v: string) => setFormData({...formData, companyName: v})} />
-          <FormField label="Contact Person" icon={<User size={18} />} placeholder="Full name" value={formData.contactName} onChange={(v: string) => setFormData({...formData, contactName: v})} />
-          <FormField label="Contact CNIC" icon={<CreditCard size={18} />} placeholder="XXXXX-XXXXXXX-X" maxLength={15} value={formData.cnic} onChange={(v: string) => setFormData({...formData, cnic: formatCNIC(v)})} />
-          <FormField label="Business Email" icon={<Mail size={18} />} placeholder="company@email.com" type="email" value={formData.email} onChange={(v: string) => setFormData({...formData, email: v})} />
+      <form className="space-y-10" onSubmit={handleSubmit}>
+        {/* Company Information */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+            <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-sm">1</div>
+            Company Information
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField label="Company Name" icon={<Building2 size={18} />} placeholder="Enter company name" value={formData.companyName} onChange={(v: string) => setFormData({...formData, companyName: v})} />
+            <FormField label="Contact Person" icon={<User size={18} />} placeholder="Full name" value={formData.contactName} onChange={(v: string) => setFormData({...formData, contactName: v})} />
+            <FormField label="Contact CNIC" icon={<CreditCard size={18} />} placeholder="XXXXX-XXXXXXX-X" maxLength={15} value={formData.cnic} onChange={(v: string) => setFormData({...formData, cnic: formatCNIC(v)})} />
+            <FormField label="Business Email" icon={<Mail size={18} />} placeholder="company@email.com" type="email" value={formData.email} onChange={(v: string) => setFormData({...formData, email: v})} />
+          </div>
         </div>
 
-        {/* Ad Assets */}
-        <div className="space-y-4">
-          <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Ad Content</label>
+        {/* Ad Content */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+            <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-sm">2</div>
+            Ad Content
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
              <div 
                 onClick={() => adInputRef.current?.click()}
@@ -194,26 +217,142 @@ function CorporateForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
           </div>
         </div>
 
-        {/* Payment */}
-        <div className="space-y-6 pt-4 border-t border-slate-100">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            <FormField label="Transaction ID (TID)" icon={<Hash size={18} />} placeholder="TXN-123456789" value={formData.transactionId} onChange={(v: string) => setFormData({...formData, transactionId: v})} />
-            <div 
-                onClick={() => paymentInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer"
+        {/* Package Selection */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+            <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-sm">3</div>
+            Select Ad Package
+          </h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {AD_PACKAGES.map((pkg) => (
+              <button
+                key={pkg.id}
+                type="button"
+                onClick={() => setFormData({ ...formData, selectedPackageId: pkg.id })}
+                className={`p-4 rounded-2xl border-2 transition-all text-left relative overflow-hidden group ${
+                  formData.selectedPackageId === pkg.id
+                    ? 'border-emerald-500 bg-emerald-50/50 ring-4 ring-emerald-500/10'
+                    : 'border-slate-100 bg-white hover:border-slate-200'
+                }`}
               >
-                <Upload className="text-slate-400 mx-auto mb-2" size={20} />
-                <p className="text-xs font-bold text-slate-700">{paymentFile ? 'Receipt Selected ✅' : 'Upload Payment Receipt'}</p>
-                <input type="file" ref={paymentInputRef} className="hidden" onChange={(e) => setPaymentFile(e.target.files?.[0] || null)} accept="image/*" />
+                {formData.selectedPackageId === pkg.id && (
+                  <div className="absolute top-2 right-2 text-emerald-600">
+                    <CheckCircle2 size={16} />
+                  </div>
+                )}
+                <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
+                  formData.selectedPackageId === pkg.id ? 'text-emerald-600' : 'text-slate-400'
+                }`}>
+                  {pkg.id}
+                </p>
+                <p className="font-bold text-slate-900 text-sm mb-1">{pkg.name}</p>
+                <p className="text-emerald-600 font-black text-xs">Rs. {pkg.price.toLocaleString()}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Checkout & Payment */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+            <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-sm">4</div>
+            Checkout & Payment
+          </h3>
+          
+          <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-6 md:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+              {/* Order Summary */}
+              <div className="space-y-6">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-xs">Order Summary</h4>
+                <div className="space-y-4 bg-white p-6 rounded-2xl border border-slate-100">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500 font-medium">Selected Item:</span>
+                    <span className="text-slate-900 font-bold">{selectedPkg.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500 font-medium">Subtotal:</span>
+                    <span className="text-slate-900 font-bold">Rs. {subtotal.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500 font-medium">Website Fee (2%):</span>
+                    <span className="text-slate-900 font-bold">Rs. {websiteFee.toLocaleString()}</span>
+                  </div>
+                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <span className="text-slate-900 font-black">Total Payable:</span>
+                    <span className="text-emerald-600 font-black text-xl">Rs. {totalPayable.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Select Payment Method</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Card', 'EasyPaisa', 'JazzCash'].map((method) => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, paymentMethod: method })}
+                        className={`py-3 px-4 rounded-xl text-xs font-bold border-2 transition-all ${
+                          formData.paymentMethod === method
+                            ? 'border-emerald-500 bg-emerald-50/30 text-emerald-600'
+                            : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200'
+                        }`}
+                      >
+                        {method}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Transaction Proof */}
+              <div className="space-y-6">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-xs">Payment Details</h4>
+                <div className="space-y-4">
+                  {formData.paymentMethod === 'Card' ? (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                      <FormField label="Card Number" icon={<CreditCard size={18} />} placeholder="0000 0000 0000 0000" value={formData.cardNumber} onChange={(v: string) => setFormData({...formData, cardNumber: v})} />
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField label="Expiry Date" icon={<Hash size={18} />} placeholder="MM/YY" value={formData.expiryDate} onChange={(v: string) => setFormData({...formData, expiryDate: v})} />
+                        <FormField label="CVV" icon={<Hash size={18} />} placeholder="123" value={formData.cvv} onChange={(v: string) => setFormData({...formData, cvv: v})} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="animate-in fade-in slide-in-from-top-2">
+                      <FormField label="Mobile Wallet Number" icon={<Hash size={18} />} placeholder="03xx-xxxxxxx" value={formData.walletNumber} onChange={(v: string) => setFormData({...formData, walletNumber: v})} />
+                    </div>
+                  )}
+
+                  <FormField label="Transaction ID (TID)" icon={<Hash size={18} />} placeholder="TXN-123456789" value={formData.transactionId} onChange={(v: string) => setFormData({...formData, transactionId: v})} />
+                  
+                  <div 
+                    onClick={() => paymentInputRef.current?.click()}
+                    className="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer group bg-white"
+                  >
+                    <Upload className="text-slate-300 group-hover:text-emerald-500 mx-auto mb-2 transition-colors" size={24} />
+                    <p className="text-xs font-bold text-slate-600">
+                      {paymentFile ? <span className="text-emerald-600">Receipt Selected ✅</span> : 'Upload Payment Receipt'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1">Screenshot or PDF of transaction</p>
+                    <input type="file" ref={paymentInputRef} className="hidden" onChange={(e) => setPaymentFile(e.target.files?.[0] || null)} accept="image/*,.pdf" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-8 border-t border-slate-100">
+              <div className="bg-slate-100/80 p-3 rounded-xl text-[10px] md:text-xs text-slate-600 mb-6 flex items-start gap-2 max-w-2xl mx-auto">
+                <span>🛡️</span>
+                <p><span className="font-bold">24-Hour Refund Guarantee:</span> If this transaction was made by mistake, you can claim a 100% refund from your dashboard within 24 hours.</p>
+              </div>
+
+              <button 
+                disabled={loading}
+                className="mx-auto block w-full md:w-auto px-8 py-3 rounded-xl font-bold bg-emerald-600 text-white hover:bg-emerald-700 text-sm shadow-md transition-all text-center flex items-center justify-center gap-3 disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="animate-spin" size={20} /> : <><Send size={18} /> Pay & Place Ad Order (Rs. {totalPayable.toLocaleString()})</>}
+              </button>
             </div>
           </div>
-
-          <button 
-            disabled={loading}
-            className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 flex items-center justify-center gap-3 disabled:opacity-50"
-          >
-            {loading ? <Loader2 className="animate-spin" size={24} /> : <><Send size={20} /> Submit Application</>}
-          </button>
         </div>
       </form>
     </div>
@@ -221,17 +360,38 @@ function CorporateForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
 }
 
 function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
+  const NGOS = [
+    "Edhi Foundation",
+    "Saylani Welfare Trust",
+    "Chhipa Welfare Association",
+    "Shaukat Khanum Memorial",
+    "Indus Hospital & Health Network",
+    "Other / NGO Not Listed"
+  ];
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     cnic: '',
-    transactionId: ''
+    transactionId: '',
+    amount: '1000',
+    destination: 'platform',
+    selectedNgo: NGOS[0],
+    customNgoName: '',
+    customNgoAddress: '',
+    paymentMethod: 'Card',
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    walletNumber: ''
   });
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const { showToast } = useToast();
   const paymentInputRef = useRef<HTMLInputElement>(null);
+
+  const donationAmount = parseFloat(formData.amount) || 0;
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -245,12 +405,15 @@ function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!paymentFile) return showToast('Please upload receipt', 'error');
+    if (!formData.transactionId) return showToast('Please enter Transaction ID', 'error');
+    if (donationAmount <= 0) return showToast('Please enter a valid amount', 'error');
     
     setLoading(true);
     try {
       const receiptBase64 = await fileToBase64(paymentFile);
       await addDoc(collection(db, 'sponsors'), {
         ...formData,
+        amount: donationAmount,
         receiptUrl: receiptBase64,
         type: 'individual',
         status: 'pending',
@@ -269,26 +432,179 @@ function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
 
   return (
     <div className="p-8 md:p-12">
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField label="Full Name" icon={<User size={18} />} placeholder="Enter your name" value={formData.name} onChange={(v: string) => setFormData({...formData, name: v})} />
-          <FormField label="Email" icon={<Mail size={18} />} placeholder="your@email.com" type="email" value={formData.email} onChange={(v: string) => setFormData({...formData, email: v})} />
-          <FormField label="CNIC" icon={<CreditCard size={18} />} placeholder="XXXXX-XXXXXXX-X" maxLength={15} value={formData.cnic} onChange={(v: string) => setFormData({...formData, cnic: formatCNIC(v)})} />
-          <FormField label="Transaction ID" icon={<Hash size={18} />} placeholder="TXN-XXXXX" value={formData.transactionId} onChange={(v: string) => setFormData({...formData, transactionId: v})} />
-        </div>
-        
-        <div 
-          onClick={() => paymentInputRef.current?.click()}
-          className="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer"
-        >
-          <Upload className="text-slate-400 mx-auto mb-3" size={32} />
-          <p className="font-bold text-slate-700">{paymentFile ? paymentFile.name : 'Click to upload payment screenshot'}</p>
-          <input type="file" ref={paymentInputRef} className="hidden" onChange={(e) => setPaymentFile(e.target.files?.[0] || null)} accept="image/*" />
+      <form className="space-y-10" onSubmit={handleSubmit}>
+        {/* Personal Info */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+            <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-sm">1</div>
+            Personal Information
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField label="Full Name" icon={<User size={18} />} placeholder="Enter your name" value={formData.name} onChange={(v: string) => setFormData({...formData, name: v})} />
+            <FormField label="Email" icon={<Mail size={18} />} placeholder="your@email.com" type="email" value={formData.email} onChange={(v: string) => setFormData({...formData, email: v})} />
+            <FormField label="CNIC" icon={<CreditCard size={18} />} placeholder="XXXXX-XXXXXXX-X" maxLength={15} value={formData.cnic} onChange={(v: string) => setFormData({...formData, cnic: formatCNIC(v)})} />
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Donation Amount (PKR)</label>
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Rs.</div>
+                <input 
+                  type="number"
+                  required
+                  value={formData.amount}
+                  onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                  className="w-full bg-slate-50 border-0 focus:ring-2 focus:ring-emerald-500 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-medium transition-all"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
-        <button disabled={loading} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 flex items-center justify-center gap-3">
-          {loading ? <Loader2 className="animate-spin" size={24} /> : <><Heart size={20} /> Complete Donation</>}
-        </button>
+        {/* Donation Destination */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+            <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-sm">2</div>
+            Donation Destination
+          </h3>
+          <div className="flex gap-4 p-1.5 bg-slate-50 rounded-2xl border border-slate-200 w-fit">
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, destination: 'platform' })}
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                formData.destination === 'platform' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'
+              }`}
+            >
+              FreeHunger Platform
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, destination: 'ngo' })}
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                formData.destination === 'ngo' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'
+              }`}
+            >
+              Specific NGO
+            </button>
+          </div>
+
+          {formData.destination === 'ngo' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Select NGO</label>
+                <select
+                  value={formData.selectedNgo}
+                  onChange={(e) => setFormData({ ...formData, selectedNgo: e.target.value })}
+                  className="w-full bg-slate-50 border-0 focus:ring-2 focus:ring-emerald-500 rounded-2xl py-3.5 px-4 text-sm font-medium"
+                >
+                  {NGOS.map(ngo => <option key={ngo} value={ngo}>{ngo}</option>)}
+                </select>
+              </div>
+              {formData.selectedNgo === 'Other / NGO Not Listed' && (
+                <div className="space-y-4 contents">
+                  <FormField label="NGO Name" icon={<Building2 size={18} />} placeholder="Enter NGO name" value={formData.customNgoName} onChange={(v: string) => setFormData({...formData, customNgoName: v})} />
+                  <FormField label="NGO Address" icon={<Mail size={18} />} placeholder="NGO location / city" value={formData.customNgoAddress} onChange={(v: string) => setFormData({...formData, customNgoAddress: v})} />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Checkout & Payment */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+            <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-sm">3</div>
+            Checkout & Payment
+          </h3>
+          
+          <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-6 md:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+              {/* Order Summary */}
+              <div className="space-y-6">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-xs">Donation Summary</h4>
+                <div className="space-y-4 bg-white p-6 rounded-2xl border border-slate-100">
+                  <div className="flex justify-between items-start text-sm">
+                    <span className="text-slate-500 font-medium">Purpose:</span>
+                    <span className="text-slate-900 font-bold text-right max-w-[200px]">
+                      {formData.destination === 'platform' ? 'FreeHunger General Fund' : (formData.selectedNgo === 'Other / NGO Not Listed' ? formData.customNgoName || 'Custom NGO' : formData.selectedNgo)}
+                    </span>
+                  </div>
+                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <span className="text-slate-900 font-black">Total Donation:</span>
+                    <span className="text-emerald-600 font-black text-xl">Rs. {donationAmount.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Select Payment Method</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Card', 'EasyPaisa', 'JazzCash'].map((method) => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, paymentMethod: method })}
+                        className={`py-3 px-4 rounded-xl text-xs font-bold border-2 transition-all ${
+                          formData.paymentMethod === method
+                            ? 'border-emerald-500 bg-emerald-50/30 text-emerald-600'
+                            : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200'
+                        }`}
+                      >
+                        {method}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Transaction Proof */}
+              <div className="space-y-6">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-xs">Payment Details</h4>
+                <div className="space-y-4">
+                  {formData.paymentMethod === 'Card' ? (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                      <FormField label="Card Number" icon={<CreditCard size={18} />} placeholder="0000 0000 0000 0000" value={formData.cardNumber} onChange={(v: string) => setFormData({...formData, cardNumber: v})} />
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField label="Expiry Date" icon={<Hash size={18} />} placeholder="MM/YY" value={formData.expiryDate} onChange={(v: string) => setFormData({...formData, expiryDate: v})} />
+                        <FormField label="CVV" icon={<Hash size={18} />} placeholder="123" value={formData.cvv} onChange={(v: string) => setFormData({...formData, cvv: v})} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="animate-in fade-in slide-in-from-top-2">
+                      <FormField label="Mobile Wallet Number" icon={<Hash size={18} />} placeholder="03xx-xxxxxxx" value={formData.walletNumber} onChange={(v: string) => setFormData({...formData, walletNumber: v})} />
+                    </div>
+                  )}
+
+                  <FormField label="Transaction ID (TID)" icon={<Hash size={18} />} placeholder="TXN-XXXXX" value={formData.transactionId} onChange={(v: string) => setFormData({...formData, transactionId: v})} />
+                  
+                  <div 
+                    onClick={() => paymentInputRef.current?.click()}
+                    className="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer group bg-white"
+                  >
+                    <Upload className="text-slate-300 group-hover:text-emerald-500 mx-auto mb-2 transition-colors" size={24} />
+                    <p className="text-xs font-bold text-slate-600">
+                      {paymentFile ? <span className="text-emerald-600">Receipt Selected ✅</span> : 'Upload Payment Receipt'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1">Screenshot of transaction</p>
+                    <input type="file" ref={paymentInputRef} className="hidden" onChange={(e) => setPaymentFile(e.target.files?.[0] || null)} accept="image/*" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-8 border-t border-slate-100 text-center">
+              <div className="bg-slate-100/80 p-3 rounded-xl text-[10px] md:text-xs text-slate-600 mb-6 flex items-start gap-2 max-w-2xl mx-auto text-left">
+                <span>🛡️</span>
+                <p><span className="font-bold">24-Hour Refund Guarantee:</span> If this transaction was made by mistake, you can claim a 100% refund from your dashboard within 24 hours.</p>
+              </div>
+
+              <button 
+                disabled={loading}
+                className="mx-auto block w-full md:w-auto px-8 py-3 rounded-xl font-bold bg-emerald-600 text-white hover:bg-emerald-700 text-sm shadow-md transition-all text-center flex items-center justify-center gap-3 disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="animate-spin" size={20} /> : <><Heart size={18} /> Complete Donation (Rs. {donationAmount.toLocaleString()})</>}
+              </button>
+            </div>
+          </div>
+        </div>
       </form>
     </div>
   );

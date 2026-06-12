@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import { db, auth } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { 
-  Heart, Send, User, Mail, Phone, MapPin, Briefcase, 
+  Heart, User, Mail, Phone, MapPin, 
   MessageSquare, Loader2, CheckCircle2, ArrowLeft, 
-  CreditCard, Camera as LucideCamera, Upload, Image as LucideImage,
-  Check, AlertCircle, ChevronRight, ChevronLeft, Clock, XCircle,
+  CreditCard, Camera as LucideCamera, Upload, 
+  Check, AlertCircle, Clock, XCircle,
   ShieldCheck
 } from 'lucide-react';
 import { useToast } from './Toast';
