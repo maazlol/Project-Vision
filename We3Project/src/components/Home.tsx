@@ -41,12 +41,12 @@ const Home = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <section className="relative overflow-hidden bg-emerald-50/50 pt-28 pb-16 sm:pt-32 sm:pb-20">
+      <section className="relative overflow-hidden bg-emerald-50/50 pt-12 pb-16 sm:pt-16 sm:pb-20">
         <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-3 items-center gap-8 lg:gap-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 items-start gap-8 lg:gap-12">
             
             {/* Left Column - Image Stack */}
-            <div className="hidden lg:flex flex-col gap-6 items-center">
+            <div className="hidden lg:flex flex-col gap-6 items-center pt-4">
               {[1, 2, 3].map((num) => (
                 <div key={num} className="w-full aspect-square max-w-[180px] overflow-hidden rounded-[2.5rem] shadow-xl transform -rotate-3 hover:rotate-0 transition-transform duration-500">
                   <img 
@@ -59,7 +59,7 @@ const Home = () => {
             </div>
 
             {/* Center Column - Text & CTA */}
-            <div className="text-center hero-content">
+            <div className="text-center hero-content pt-16 lg:pt-24">
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-700 mb-6">
                 <Stars size={16} /> Pakistan's First Ad-to-Donation Platform
               </span>
@@ -81,7 +81,7 @@ const Home = () => {
             </div>
 
             {/* Right Column - Image Stack */}
-            <div className="hidden lg:flex flex-col gap-6 items-center">
+            <div className="hidden lg:flex flex-col gap-6 items-center pt-4">
               {[4, 5, 6].map((num) => (
                 <div key={num} className="w-full aspect-square max-w-[180px] overflow-hidden rounded-[2.5rem] shadow-xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
                   <img 
