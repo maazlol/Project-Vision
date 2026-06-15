@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { db } from '../lib/firebase';
@@ -54,29 +54,66 @@ const RecenterMap = ({ lat, lng }: { lat: number, lng: number }) => {
 const VolunteerMap: React.FC = () => {
   const [ngos, setNgos] = useState<NGO[]>([]);
   const [selectedNgo, setSelectedNgo] = useState<NGO | null>(fallbackNgos[0]);
-  const [showForm, setShowForm] = useState(false);
-  const formRef = useRef<HTMLDivElement | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const { showToast } = useToast();
 
+  // Helper to calculate distance in km
+  const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Radius of the earth in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
   useEffect(() => {
+    // Get user location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        () => {
+          console.log('Location access denied');
+        }
+      );
+    }
+
     // Fetch NGOs
     const q = query(collection(db, 'ngos'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const ngoList = snapshot.docs.map(doc => {
         const data = doc.data();
-        // Safe coordinate check with Karachi fallback [24.8607, 67.0011]
         const lat = typeof data.latitude === 'number' ? data.latitude : 24.8607;
         const lng = typeof data.longitude === 'number' ? data.longitude : 67.0011;
         
         return {
-          id: doc.id, // Using stable doc.id
+          id: doc.id,
           ...data,
           latitude: lat,
           longitude: lng
         };
       }) as NGO[];
 
-      const mergedNgos = ngoList.length ? ngoList : fallbackNgos;
+      let mergedNgos = ngoList.length ? ngoList : fallbackNgos;
+
+      // Sort by proximity if user location is available
+      if (userLocation) {
+        mergedNgos = [...mergedNgos].sort((a, b) => {
+          const distA = getDistance(userLocation.lat, userLocation.lng, a.latitude, a.longitude);
+          const distB = getDistance(userLocation.lat, userLocation.lng, b.latitude, b.longitude);
+          return distA - distB;
+        });
+      }
+
       setNgos(mergedNgos);
 
       if (!selectedNgo && mergedNgos.length) {
@@ -85,21 +122,11 @@ const VolunteerMap: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [userLocation]);
 
   const handleDonationRequest = (payload: Record<string, string>) => {
     showToast(`Request sent for ${payload.ngoLabel ?? 'your selected NGO'}. We will contact you soon.`, 'success');
-  };
-
-  const handleToggleForm = () => {
-    const nextState = !showForm;
-    setShowForm(nextState);
-
-    if (nextState) {
-      requestAnimationFrame(() => {
-        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    }
+    setIsModalOpen(false);
   };
 
   return (
@@ -124,7 +151,7 @@ const VolunteerMap: React.FC = () => {
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-500">Nearest Organizations</p>
                 <h3 className="mt-2 text-2xl font-black text-slate-900">Use your location to find nearby verified NGOs.</h3>
-                <p className="mt-2 text-sm text-slate-600">Allow location access to see the nearest organizations. You can also manually choose an NGO from the map and open the donation form below.</p>
+                <p className="mt-2 text-sm text-slate-600">We've sorted the list by proximity to your current location. You can also manually choose an NGO from the map and open the donation form below.</p>
               </div>
 
               <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600">
@@ -132,27 +159,25 @@ const VolunteerMap: React.FC = () => {
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
                   <li>Choose a verified NGO from the list</li>
                   <li>Open donation form when you are ready</li>
-                  <li>Use Google Maps / InDrive / Careem / Bykea for the trip</li>
+                  <li>Use Google Maps / InDrive / Careem for the trip</li>
                 </ul>
               </div>
 
               <button
                 type="button"
-                onClick={handleToggleForm}
+                onClick={() => setIsModalOpen(true)}
                 className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-700"
               >
-                {showForm ? 'Hide donation form' : 'Open donation form'}
+                Open donation form
               </button>
 
-              {showForm && (
-                <div ref={formRef} className="scroll-mt-24">
-                  <DonationRequestForm
-                    ngos={(ngos.length ? ngos : fallbackNgos)}
-                    selectedNgo={selectedNgo}
-                    onSubmit={handleDonationRequest}
-                  />
-                </div>
-              )}
+              <DonationRequestForm
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                ngos={(ngos.length ? ngos : fallbackNgos)}
+                selectedNgo={selectedNgo}
+                onSubmit={handleDonationRequest}
+              />
             </div>
 
             <div className="space-y-6">

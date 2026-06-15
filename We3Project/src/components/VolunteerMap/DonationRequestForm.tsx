@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Send, Sparkles, Package2 } from 'lucide-react';
+import { Send, Package2, X, Camera, MapPin, Truck } from 'lucide-react';
 
 interface NGO {
   id: string;
@@ -12,6 +12,8 @@ interface NGO {
 }
 
 interface DonationRequestFormProps {
+  isOpen: boolean;
+  onClose: () => void;
   ngos: NGO[];
   selectedNgo: NGO | null;
   onSubmit: (payload: Record<string, string>) => void;
@@ -25,20 +27,18 @@ const donationTypes = [
   'Cash / Credit Support',
 ];
 
-export default function DonationRequestForm({ ngos, selectedNgo, onSubmit }: DonationRequestFormProps) {
+export default function DonationRequestForm({ isOpen, onClose, ngos, selectedNgo, onSubmit }: DonationRequestFormProps) {
   const [formData, setFormData] = useState({
     donorName: '',
     ngoId: selectedNgo?.id ?? '',
     donationType: donationTypes[0],
-    transport: 'google_maps',
+    donationDetails: '',
+    transport: 'self_drive',
     quantity: '1 box',
     notes: '',
-    // Sub-fields
     vehicleNumber: '',
-    estimatedArrival: '',
-    driverName: '',
-    trackingLink: '',
-    dropoffTime: '',
+    routeLink: '',
+    photo: null as File | null,
   });
 
   useEffect(() => {
@@ -55,210 +55,234 @@ export default function DonationRequestForm({ ngos, selectedNgo, onSubmit }: Don
   const selectedNgoLabel = activeNgo?.name ?? 'Choose an NGO';
 
   const routeUrl = useMemo(() => {
-    if (!activeNgo) {
-      return '';
-    }
-
+    if (!activeNgo) return '';
     const query = encodeURIComponent(`${activeNgo.address || activeNgo.name}, ${activeNgo.city || 'Pakistan'}`);
-
+    
     switch (formData.transport) {
-      case 'google_maps':
-      case 'self_drive':
-        return `https://www.google.com/maps/search/?api=1&query=${query}`;
-      case 'indrive':
-        return 'https://www.indrive.com/';
-      case 'careem':
-        return 'https://www.careem.com/';
-      case 'bykea':
-        return 'https://www.bykea.com/';
-      default:
-        return `https://www.google.com/maps/search/?api=1&query=${query}`;
+      case 'indrive': return 'https://www.indrive.com/';
+      case 'careem': return 'https://www.careem.com/';
+      default: return `https://www.google.com/maps/search/?api=1&query=${query}`;
     }
   }, [activeNgo, formData.transport]);
 
   const handleOpenRoute = () => {
-    if (!routeUrl) {
-      return;
-    }
-
+    if (!routeUrl) return;
     window.open(routeUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     onSubmit({
-      ...formData,
+      donorName: formData.donorName,
+      ngoId: formData.ngoId,
+      donationType: formData.donationType,
+      donationDetails: formData.donationDetails,
+      transport: formData.transport,
+      quantity: formData.quantity,
+      notes: formData.notes,
+      vehicleNumber: formData.vehicleNumber,
+      routeLink: formData.routeLink,
       ngoLabel: selectedNgoLabel,
+      photoName: formData.photo?.name ?? '',
     });
   };
 
+  if (!isOpen) return null;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-[1.5rem] border border-slate-100 bg-slate-50 p-5 shadow-sm">
-      <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-500">Donation request</p>
-        <h3 className="mt-1 text-xl font-black text-slate-900">Quick support form</h3>
-        <p className="mt-1 text-sm text-slate-500">A simple form for your donation request.</p>
-      </div>
-
-      <label className="space-y-2 text-sm font-semibold text-slate-600">
-        Your Name
-        <input
-          required
-          value={formData.donorName}
-          onChange={(e) => setFormData((prev) => ({ ...prev, donorName: e.target.value }))}
-          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
-          placeholder="Enter your full name"
-        />
-      </label>
-
-      <label className="space-y-2 text-sm font-semibold text-slate-600">
-        Select NGO
-        <select
-          required
-          value={formData.ngoId}
-          onChange={(e) => setFormData((prev) => ({ ...prev, ngoId: e.target.value }))}
-          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
+    <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+        onClick={onClose}
+      />
+      
+      {/* Modal Content */}
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-300 sm:p-8">
+        <button 
+          onClick={onClose}
+          className="absolute right-6 top-6 rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900"
         >
-          <option value="">Choose an NGO...</option>
-          {ngos.map((ngo) => (
-            <option key={ngo.id} value={ngo.id}>{ngo.name}</option>
-          ))}
-        </select>
-      </label>
+          <X size={20} />
+        </button>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="space-y-2 text-sm font-semibold text-slate-600">
-          What are you donating?
-          <select
-            value={formData.donationType}
-            onChange={(e) => setFormData((prev) => ({ ...prev, donationType: e.target.value }))}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500 focus:bg-white"
-          >
-            {donationTypes.map((type) => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-        </label>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-500">Donation request</p>
+            <h3 className="mt-1 text-2xl font-black text-slate-900">Send Donation Details</h3>
+            <p className="mt-1 text-sm text-slate-500">Provide the details for your donation drop-off.</p>
+          </div>
 
-        <label className="space-y-2 text-sm font-semibold text-slate-600">
-          Quantity / detail
-          <span className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm focus-within:border-emerald-500 focus-within:bg-white">
-            <Package2 size={15} className="text-slate-400" />
-            <input
-              value={formData.quantity}
-              onChange={(e) => setFormData((prev) => ({ ...prev, quantity: e.target.value }))}
-              className="w-full bg-transparent text-sm outline-none"
-              placeholder="e.g. 10 food packs"
+          <div className="grid gap-6 md:grid-cols-2">
+            <label className="space-y-2 text-sm font-semibold text-slate-600">
+              Your Name
+              <input
+                required
+                value={formData.donorName}
+                onChange={(e) => setFormData((prev) => ({ ...prev, donorName: e.target.value }))}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+                placeholder="Enter your name"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm font-semibold text-slate-600">
+              Select NGO
+              <select
+                required
+                value={formData.ngoId}
+                onChange={(e) => setFormData((prev) => ({ ...prev, ngoId: e.target.value }))}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+              >
+                <option value="">Choose an NGO...</option>
+                {ngos.map((ngo) => (
+                  <option key={ngo.id} value={ngo.id}>{ngo.name}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-2 text-sm font-semibold text-slate-600">
+              Donation Type
+              <select
+                value={formData.donationType}
+                onChange={(e) => setFormData((prev) => ({ ...prev, donationType: e.target.value }))}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+              >
+                {donationTypes.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-2 text-sm font-semibold text-slate-600">
+              Quantity / Detail
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus-within:border-emerald-500 focus-within:bg-white transition">
+                <Package2 size={18} className="text-slate-400" />
+                <input
+                  value={formData.quantity}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, quantity: e.target.value }))}
+                  className="w-full bg-transparent text-sm outline-none"
+                  placeholder="e.g. 10 food packs"
+                />
+              </div>
+            </label>
+          </div>
+
+          {/* Dynamic Donation Fields */}
+          {(formData.donationType === 'Food Packages' || formData.donationType === 'Clothes') && (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+              <label className="space-y-2 text-sm font-semibold text-slate-600">
+                {formData.donationType === 'Food Packages' ? 'Food Details (Type, Expiry, etc.)' : 'Cloth Details (Size, Type, Condition)' }
+                <textarea
+                  value={formData.donationDetails}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, donationDetails: e.target.value }))}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+                  rows={2}
+                  placeholder={`Provide more info about the ${formData.donationType.toLowerCase()}...`}
+                />
+              </label>
+            </div>
+          )}
+
+          {/* Picture Upload */}
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-slate-600">Donation Picture (Optional)</p>
+            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-4 transition hover:border-emerald-500 hover:bg-emerald-50/50">
+              <Camera size={24} className="text-slate-400" />
+              <div className="text-left">
+                <p className="text-sm font-bold text-slate-900">{formData.photo ? formData.photo.name : 'Click to upload picture'}</p>
+                <p className="text-xs text-slate-500">Provide a picture of what you are donating</p>
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => setFormData((prev) => ({ ...prev, photo: e.target.files?.[0] || null }))}
+              />
+            </label>
+          </div>
+
+          {/* Transport and Route */}
+          <div className="space-y-4 rounded-3xl border border-slate-100 bg-slate-50 p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+              <label className="flex-1 space-y-2 text-sm font-semibold text-slate-600">
+                Transport Option
+                <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 focus-within:border-emerald-500 transition">
+                  <Truck size={18} className="text-slate-400" />
+                  <select
+                    value={formData.transport}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, transport: e.target.value }))}
+                    className="w-full bg-transparent text-sm outline-none"
+                  >
+                    <option value="self_drive">Self-Drive</option>
+                    <option value="indrive">InDrive</option>
+                    <option value="careem">Careem</option>
+                  </select>
+                </div>
+              </label>
+
+              <button
+                type="button"
+                onClick={handleOpenRoute}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-slate-800"
+              >
+                <MapPin size={18} />
+                Open Route
+              </button>
+            </div>
+
+            {formData.transport !== 'self_drive' && (
+              <div className="grid gap-4 md:grid-cols-2 animate-in fade-in slide-in-from-top-2">
+                <label className="space-y-2 text-sm font-semibold text-slate-600">
+                  Vehicle Number
+                  <input
+                    value={formData.vehicleNumber}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, vehicleNumber: e.target.value }))}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
+                    placeholder="e.g. ABC-123"
+                  />
+                </label>
+                <label className="space-y-2 text-sm font-semibold text-slate-600">
+                  Vehicle Route Link
+                  <input
+                    value={formData.routeLink}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, routeLink: e.target.value }))}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
+                    placeholder="Paste link here..."
+                  />
+                </label>
+              </div>
+            )}
+          </div>
+
+          <label className="space-y-2 text-sm font-semibold text-slate-600">
+            Notes
+            <textarea
+              rows={3}
+              value={formData.notes}
+              onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+              placeholder="Any additional notes for the NGO..."
             />
-          </span>
-        </label>
+          </label>
+
+          <div className="flex gap-4 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm font-black text-slate-600 transition hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-[2] flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-4 text-base font-black text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-700"
+            >
+              <Send size={18} />
+              Done / Submit Request
+            </button>
+          </div>
+        </form>
       </div>
-
-      <label className="space-y-2 text-sm font-semibold text-slate-600">
-        Open route in
-        <select
-          value={formData.transport}
-          onChange={(e) => setFormData((prev) => ({ ...prev, transport: e.target.value }))}
-          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
-        >
-          <option value="google_maps">Google Maps</option>
-          <option value="self_drive">Self-Drive</option>
-          <option value="indrive">InDrive</option>
-          <option value="careem">Careem</option>
-          <option value="bykea">Bykea</option>
-        </select>
-      </label>
-
-      {/* Conditional Sub-fields */}
-      {formData.transport === 'self_drive' && (
-        <div className="grid gap-4 md:grid-cols-2 animate-in fade-in slide-in-from-top-2">
-          <label className="space-y-2 text-sm font-semibold text-slate-600">
-            Vehicle Number
-            <input
-              value={formData.vehicleNumber}
-              onChange={(e) => setFormData((prev) => ({ ...prev, vehicleNumber: e.target.value }))}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
-              placeholder="e.g. ABC-123"
-            />
-          </label>
-          <label className="space-y-2 text-sm font-semibold text-slate-600">
-            Estimated Arrival Time
-            <input
-              type="time"
-              value={formData.estimatedArrival}
-              onChange={(e) => setFormData((prev) => ({ ...prev, estimatedArrival: e.target.value }))}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
-            />
-          </label>
-          <label className="col-span-full space-y-2 text-sm font-semibold text-slate-600">
-            Upload Document/Photo
-            <input
-              type="file"
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm outline-none transition focus:border-emerald-500 file:mr-4 file:rounded-full file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-xs file:font-bold file:text-emerald-700 hover:file:bg-emerald-100"
-            />
-          </label>
-        </div>
-      )}
-
-      {formData.transport === 'indrive' && (
-        <div className="grid gap-4 md:grid-cols-2 animate-in fade-in slide-in-from-top-2">
-          <label className="space-y-2 text-sm font-semibold text-slate-600">
-            Driver Name
-            <input
-              value={formData.driverName}
-              onChange={(e) => setFormData((prev) => ({ ...prev, driverName: e.target.value }))}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
-              placeholder="Enter driver name"
-            />
-          </label>
-          <label className="space-y-2 text-sm font-semibold text-slate-600">
-            Tracking Link
-            <input
-              type="url"
-              value={formData.trackingLink}
-              onChange={(e) => setFormData((prev) => ({ ...prev, trackingLink: e.target.value }))}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
-              placeholder="https://..."
-            />
-          </label>
-          <label className="col-span-full space-y-2 text-sm font-semibold text-slate-600">
-            Dropoff Time
-            <input
-              type="time"
-              value={formData.dropoffTime}
-              onChange={(e) => setFormData((prev) => ({ ...prev, dropoffTime: e.target.value }))}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500"
-            />
-          </label>
-        </div>
-      )}
-
-      <label className="space-y-2 text-sm font-semibold text-slate-600">
-        Notes
-        <textarea
-          rows={3}
-          value={formData.notes}
-          onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm outline-none transition focus:border-emerald-500 focus:bg-white"
-          placeholder="Mention pickup time, urgency, school/NGO need, or other details."
-        />
-      </label>
-
-      <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-700">
-        <div className="flex items-start gap-2">
-          <Sparkles size={16} className="mt-0.5 shrink-0" />
-          <p>Selected NGO: <strong>{selectedNgoLabel}</strong>. Use the button below to open the destination directly in your chosen transport app or map.</p>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleOpenRoute}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-700"
-      >
-        <Send size={16} />
-        Open route in {formData.transport === 'google_maps' ? 'Google Maps' : formData.transport === 'self_drive' ? 'Self-Drive' : formData.transport === 'indrive' ? 'InDrive' : formData.transport === 'careem' ? 'Careem' : 'Bykea'}
-      </button>
-    </form>
+    </div>
   );
 }

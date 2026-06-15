@@ -41,11 +41,25 @@ const Home = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section */}
       <section className="relative overflow-hidden bg-emerald-50/50 pt-28 pb-16 sm:pt-32 sm:pb-20">
         <div className="container mx-auto px-4 relative z-10">
-          <div className="flex flex-col items-center gap-10 lg:flex-row lg:items-center lg:gap-12">
-            <div className="w-full text-center lg:w-1/2 lg:text-left hero-content">
+          <div className="grid grid-cols-1 lg:grid-cols-3 items-center gap-8 lg:gap-12">
+            
+            {/* Left Column - Image Stack */}
+            <div className="hidden lg:flex flex-col gap-6 items-center">
+              {[1, 2, 3].map((num) => (
+                <div key={num} className="w-full aspect-square max-w-[180px] overflow-hidden rounded-[2.5rem] shadow-xl transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+                  <img 
+                    src={`./Pictures/freehunger${num}.jpg`} 
+                    alt={`Impact ${num}`} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Center Column - Text & CTA */}
+            <div className="text-center hero-content">
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-700 mb-6">
                 <Stars size={16} /> Pakistan's First Ad-to-Donation Platform
               </span>
@@ -54,11 +68,11 @@ const Home = () => {
                 Earn Credits.<br />
                 <span className="text-emerald-500">Feed Children.</span>
               </h1>
-              <p className="mx-auto max-w-lg text-base text-slate-600 sm:text-lg lg:mx-0 mb-8">
+              <p className="mx-auto max-w-lg text-base text-slate-600 sm:text-lg mb-8">
                 No money needed. Watch short ads, earn real credits, and donate
                 to verified NGOs & rural schools across Pakistan — all for free.
               </p>
-              <div className="flex flex-wrap justify-center gap-4 lg:justify-start">
+              <div className="flex flex-wrap justify-center gap-4">
                 <Link to="/login" className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-6 py-4 text-base font-bold text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-600 sm:w-auto sm:px-8 sm:text-lg">
                   <PlayCircle size={24} />
                   Start Earning to Donate
@@ -66,32 +80,32 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="w-full lg:w-1/2 hero-image-box">
-              <div className="relative overflow-hidden rounded-3xl shadow-2xl">
-                <img
-                  src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
-                  alt="Children"
-                  className="aspect-[4/3] w-full object-cover"
-                />
-
-                {/* Floating Cards */}
-                <div className="absolute left-3 top-3 flex max-w-[180px] items-center gap-3 rounded-2xl border border-emerald-100 bg-white/95 p-3 shadow-xl backdrop-blur-sm sm:left-[-1rem] sm:top-6 sm:max-w-none sm:p-4 lg:left-[-1.5rem]">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-400 text-xl text-white">🍽️</div>
-                  <div>
-                    <div className="text-sm font-black text-emerald-600 sm:text-sm">150,000+</div>
-                    <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">Meals Served</div>
-                  </div>
+            {/* Right Column - Image Stack */}
+            <div className="hidden lg:flex flex-col gap-6 items-center">
+              {[4, 5, 6].map((num) => (
+                <div key={num} className="w-full aspect-square max-w-[180px] overflow-hidden rounded-[2.5rem] shadow-xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
+                  <img 
+                    src={`./Pictures/freehunger${num}.jpg`} 
+                    alt={`Impact ${num}`} 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-
-                <div className="absolute bottom-3 right-3 flex max-w-[180px] items-center gap-3 rounded-2xl border border-emerald-100 bg-white/95 p-3 shadow-xl backdrop-blur-sm sm:bottom-6 sm:right-[-1rem] sm:max-w-none sm:p-4 lg:right-[-1.5rem]">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-lime-500 to-emerald-500 text-xl text-white">🏫</div>
-                  <div>
-                    <div className="text-sm font-black text-orange-500 sm:text-sm">20+</div>
-                    <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">NGOs & Schools</div>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
+
+            {/* Mobile Image Grid (Only visible on mobile) */}
+            <div className="grid grid-cols-2 gap-4 lg:hidden mt-8">
+              {[1, 2].map((num) => (
+                <div key={num} className="aspect-square overflow-hidden rounded-3xl shadow-lg">
+                  <img 
+                    src={`./Pictures/freehunger${num}.jpg`} 
+                    alt={`Impact ${num}`} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+
           </div>
         </div>
       </section>
