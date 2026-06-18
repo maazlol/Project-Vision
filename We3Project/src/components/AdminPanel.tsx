@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { collection, getDocs, doc, updateDoc, addDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, addDoc, setDoc } from 'firebase/firestore';
 import * as Icons from 'lucide-react';
 import { useUserRole } from '../lib/useUserRole';
 import { Link as RouterLink } from 'react-router-dom';
@@ -23,6 +23,7 @@ export interface Sponsor {
 
 export interface Volunteer {
   id: string;
+  userId?: string;
   name: string;
   cnic: string;
   status: 'pending' | 'approved' | 'rejected';
@@ -110,6 +111,28 @@ export default function AdminPanel() {
       else if (action === 'deliver') updateData = { delivered: true };
 
       await updateDoc(docRef, updateData);
+
+      // --- Critical Fix: Update User Role in 'users' collection ---
+      if (tab === 'volunteers') {
+        const volunteerData = volunteers.find(v => v.id === id);
+        if (volunteerData?.userId) {
+          const userRef = doc(db, 'users', volunteerData.userId);
+          
+          if (action === 'approve') {
+            await setDoc(userRef, { 
+              role: 'volunteer',
+              isVerified: true,
+              isVolunteer: true
+            }, { merge: true });
+          } else if (action === 'reject') {
+            await setDoc(userRef, { 
+              role: 'supporter',
+              isVolunteer: false
+            }, { merge: true });
+          }
+        }
+      }
+      // -----------------------------------------------------------
       
       if (tab === 'sponsors') setSponsors(prev => prev.map(i => i.id === id ? { ...i, ...updateData } : i));
       else if (tab === 'volunteers') setVolunteers(prev => prev.map(i => i.id === id ? { ...i, ...updateData } : i));
@@ -264,20 +287,33 @@ export default function AdminPanel() {
                   {sponsors.map((s) => (
                     <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="p-5 font-bold text-slate-700">
-                        {s.companyName || s.name}
+                        <div className="flex items-center gap-2">
+                          {s.companyName || s.name}
+                          {s.status === 'approved' && <Icons.CheckCircle2 size={14} className="text-emerald-500" />}
+                          {s.status === 'rejected' && <Icons.XCircle size={14} className="text-rose-500" />}
+                        </div>
                         <div className="text-[10px] font-black uppercase text-rose-500">{s.type}</div>
                       </td>
                       <td className="p-5 font-mono text-sm text-slate-500">{s.tid}</td>
                       <td className="p-5 text-right">
-                        <button 
-                          onClick={() => {
-                            setSelectedItem({ data: s, type: 'sponsor' });
-                            setActiveKycImage({ url: s.receiptUrl, title: 'Payment Receipt' });
-                          }}
-                          className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all flex items-center gap-2 ml-auto"
-                        >
-                          <Icons.Eye size={14} /> Review
-                        </button>
+                        <div className="flex items-center justify-end gap-3">
+                          {s.status !== 'pending' && (
+                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-md ${
+                              s.status === 'approved' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
+                            }`}>
+                              {s.status}
+                            </span>
+                          )}
+                          <button 
+                            onClick={() => {
+                              setSelectedItem({ data: s, type: 'sponsor' });
+                              setActiveKycImage({ url: s.receiptUrl, title: 'Payment Receipt' });
+                            }}
+                            className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all flex items-center gap-2"
+                          >
+                            <Icons.Eye size={14} /> Review
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -299,7 +335,11 @@ export default function AdminPanel() {
                   {volunteers.map((v) => (
                     <tr key={v.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="p-5 font-bold text-slate-700">
-                        {v.name}
+                        <div className="flex items-center gap-2">
+                          {v.name}
+                          {v.status === 'approved' && <Icons.CheckCircle2 size={14} className="text-emerald-500" />}
+                          {v.status === 'rejected' && <Icons.XCircle size={14} className="text-rose-500" />}
+                        </div>
                         <div className="text-[10px] text-emerald-500 font-black uppercase">{v.city || 'N/A'}</div>
                       </td>
                       <td className="p-5 text-xs font-medium text-slate-500">
@@ -307,15 +347,24 @@ export default function AdminPanel() {
                         <div className="mt-1 font-mono text-slate-400">{v.phone}</div>
                       </td>
                       <td className="p-5 text-right">
-                        <button 
-                          onClick={() => {
-                            setSelectedItem({ data: v, type: 'volunteer' });
-                            setActiveKycImage({ url: v.cnicFront || '', title: 'CNIC Front' });
-                          }}
-                          className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-emerald-600 transition-all flex items-center gap-2 ml-auto"
-                        >
-                          <Icons.UserCheck size={14} /> Verify KYC
-                        </button>
+                        <div className="flex items-center justify-end gap-3">
+                          {v.status !== 'pending' && (
+                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-md ${
+                              v.status === 'approved' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
+                            }`}>
+                              {v.status}
+                            </span>
+                          )}
+                          <button 
+                            onClick={() => {
+                              setSelectedItem({ data: v, type: 'volunteer' });
+                              setActiveKycImage({ url: v.cnicFront || '', title: 'CNIC Front' });
+                            }}
+                            className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-emerald-600 transition-all flex items-center gap-2"
+                          >
+                            <Icons.UserCheck size={14} /> {v.status === 'pending' ? 'Verify KYC' : 'Review'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

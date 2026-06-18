@@ -35,45 +35,50 @@ export const useUserRole = () => {
         // Use onSnapshot for real-time updates if the user's role or verification changes
         const docRef = doc(db, 'users', user.uid);
         const unsubscribeDoc = onSnapshot(docRef, (docSnap) => {
+          let role: UserRole = 'supporter';
+          let userData: any = {};
+
           if (docSnap.exists()) {
-            const data = docSnap.data();
-            let role = data.role as UserRole;
+            userData = docSnap.data();
+            role = userData.role as UserRole;
             
             // If the user has registered as a volunteer but role isn't set, treat as volunteer
-            if (!role && data.isVolunteer) {
+            if (!role && userData.isVolunteer) {
               role = 'volunteer';
             }
+          }
 
-            // Admin/Volunteer Quick Access Logic
-            const nameLower = (data.name || '').toLowerCase();
-            const emailLower = (data.email || '').toLowerCase();
-            
-            if (
-              emailLower === 'maazology@gmail.com' || 
-              emailLower === 'maazstepback@gmail.com'
-            ) {
-              role = 'admin';
-            } else if (nameLower.includes('blah') || emailLower.includes('blah')) {
-              role = 'volunteer';
-            }
+          // Admin/Volunteer Quick Access Logic (Overrides Firestore role for dev/testing)
+          const emailLower = (userData.email || user.email || '').toLowerCase();
+          const nameLower = (userData.name || user.displayName || '').toLowerCase();
+          
+          if (
+            emailLower === 'maazology@gmail.com' || 
+            emailLower === 'maazstepback@gmail.com'
+          ) {
+            role = 'admin';
+          } else if (nameLower.includes('blah') || emailLower.includes('blah')) {
+            role = 'volunteer';
+          }
 
+          if (docSnap.exists()) {
             setProfile({
               uid: user.uid,
-              displayName: data.name || user.displayName || '',
+              displayName: userData.name || user.displayName || '',
               email: user.email || '',
-              photoURL: data.avatarValue || user.photoURL || '',
-              role: role || 'supporter',
-              isVerified: data.isVerified || false,
-              credits: data.credits || 0,
-              totalDonated: data.totalDonated || 0,
-              isVolunteer: data.isVolunteer || false,
-              ...data
+              photoURL: userData.avatarValue || user.photoURL || '',
+              credits: userData.credits || 0,
+              totalDonated: userData.totalDonated || 0,
+              isVolunteer: userData.isVolunteer || false,
+              isVerified: userData.isVerified || false,
+              ...userData,
+              role: role // Role must be last to ensure it takes precedence
             } as UserProfile);
           } else {
-            // Default profile for new users who haven't been added to 'users' collection yet
+            // Default profile for new users
             setProfile({
               uid: user.uid,
-              role: 'supporter',
+              role: role,
               isVerified: false,
               displayName: user.displayName || '',
               email: user.email || '',
