@@ -155,6 +155,38 @@ export const createCustomDiscussion = async (
   return roomRef.id;
 };
 
+export const updateCustomDiscussionDetails = async (
+  room: DiscussionRoom,
+  profile: UserProfile,
+  data: {
+    groupName: string;
+    description?: string;
+    imageUrl?: string;
+  }
+) => {
+  const canEdit =
+    room.creatorId === profile.uid ||
+    room.postOwnerId === profile.uid ||
+    profile.role === 'admin';
+
+  if (!canEdit) {
+    throw new Error('Only the creator or an admin can edit this chat.');
+  }
+
+  const cleanName = data.groupName.trim();
+  if (!cleanName) {
+    throw new Error('Group name is required.');
+  }
+
+  await updateDoc(doc(db, 'discussions', room.id), {
+    groupName: cleanName,
+    postTitle: room.type === 'post' ? cleanName : room.postTitle,
+    description: data.description?.trim() || '',
+    postImageUrl: data.imageUrl?.trim() || '',
+    updatedAt: serverTimestamp()
+  });
+};
+
 export const joinDiscussionRoomById = async (roomId: string, profile: UserProfile) => {
   const roomRef = doc(db, 'discussions', roomId);
   const roomSnap = await getDoc(roomRef);

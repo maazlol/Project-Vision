@@ -207,12 +207,12 @@ const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
                       placeholder="Enter image URL"
                       value={newPicUrl}
                       onChange={(e) => setNewPicUrl(e.target.value)}
-                      className="w-24 px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                      className="w-24 px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                     />
                     <button
                       onClick={handleSavePic}
                       disabled={loading}
-                      className="w-24 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                      className="w-24 px-3 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-50"
                     >
                       Save
                     </button>
@@ -226,7 +226,7 @@ const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
                         className="w-24 h-24 rounded-full object-cover border-4 border-slate-700"
                       />
                     ) : (
-                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
                         <Users className="w-12 h-12 text-white" />
                       </div>
                     )}
@@ -235,7 +235,7 @@ const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
                         onClick={() => setEditingPic(true)}
                         className="mt-2 p-1.5 hover:bg-slate-800 rounded-full transition-colors"
                       >
-                        <ImageIcon className="w-4 h-4 text-blue-400" />
+                        <ImageIcon className="w-4 h-4 text-emerald-400" />
                       </button>
                     )}
                   </>
@@ -251,12 +251,12 @@ const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
                       placeholder="Group name"
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                     />
                     <button
                       onClick={handleSaveName}
                       disabled={loading}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-50"
                     >
                       Save
                     </button>
@@ -277,7 +277,7 @@ const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
                         onClick={() => setEditingName(true)}
                         className="p-1.5 hover:bg-slate-800 rounded-full transition-colors"
                       >
-                        <Edit2 className="w-4 h-4 text-blue-400" />
+                        <Edit2 className="w-4 h-4 text-emerald-400" />
                       </button>
                     )}
                   </div>
@@ -301,7 +301,7 @@ const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
                   />
                   <button
                     onClick={handleCopyInviteLink}
-                    className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
                   >
                     Copy
                   </button>
@@ -340,7 +340,7 @@ const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
                           className="w-10 h-10 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm">
                           {member.displayName.charAt(0).toUpperCase()}
                         </div>
                       )}

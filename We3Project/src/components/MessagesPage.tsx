@@ -31,6 +31,7 @@ import {
   getDiscussionRoomName,
   joinDiscussionRoomById,
   sendDiscussionMessage,
+  updateCustomDiscussionDetails,
   type DiscussionAudience,
   type DiscussionMessage,
   type DiscussionRoom
@@ -63,6 +64,10 @@ const MessagesPage: React.FC = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [showRoomInfo, setShowRoomInfo] = useState(false);
+  const [settingsName, setSettingsName] = useState('');
+  const [settingsDescription, setSettingsDescription] = useState('');
+  const [settingsImageUrl, setSettingsImageUrl] = useState('');
+  const [savingRoomInfo, setSavingRoomInfo] = useState(false);
 
   const { discussionId } = useParams();
   const location = useLocation();
@@ -148,6 +153,31 @@ const MessagesPage: React.FC = () => {
     } catch (error) {
       console.error('Invite share error:', error);
       showToast('Could not share invite link.', 'error');
+    }
+  };
+
+  const canEditSelectedRoom = !!(
+    selectedRoom &&
+    profile &&
+    (selectedRoom.creatorId === profile.uid || selectedRoom.postOwnerId === profile.uid || profile.role === 'admin')
+  );
+
+  const handleSaveRoomInfo = async () => {
+    if (!selectedRoom || !profile || savingRoomInfo) return;
+
+    setSavingRoomInfo(true);
+    try {
+      await updateCustomDiscussionDetails(selectedRoom, profile, {
+        groupName: settingsName,
+        description: settingsDescription,
+        imageUrl: settingsImageUrl
+      });
+      showToast('Group settings updated.', 'success');
+    } catch (error: any) {
+      console.error('Room settings update error:', error);
+      showToast(error.message || 'Failed to update group settings.', 'error');
+    } finally {
+      setSavingRoomInfo(false);
     }
   };
 
@@ -291,6 +321,13 @@ const MessagesPage: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    if (!showRoomInfo || !selectedRoom) return;
+    setSettingsName(getDiscussionRoomName(selectedRoom));
+    setSettingsDescription(selectedRoom.description || '');
+    setSettingsImageUrl(selectedRoom.postImageUrl || '');
+  }, [showRoomInfo, selectedRoom]);
+
   const handleSend = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!profile || !selectedRoom || !messageText.trim() || isSending) return;
@@ -316,9 +353,9 @@ const MessagesPage: React.FC = () => {
 
   return (
     <div className="pt-16 min-h-screen bg-white">
-      <div className="mx-auto h-[calc(100vh-4rem)] max-w-7xl border-x border-gray-200 bg-white md:my-6 md:h-[calc(100vh-7rem)] md:rounded-lg md:border">
+      <div className="mx-auto h-[calc(100dvh-4rem)] max-w-7xl border-x border-gray-200 bg-white md:my-6 md:h-[calc(100dvh-7rem)] md:rounded-lg md:border">
         <div className="grid h-full grid-cols-1 md:grid-cols-[320px_1fr]">
-          <aside className="flex h-full flex-col border-r border-gray-200 bg-white">
+          <aside className={`${selectedRoom ? 'hidden md:flex' : 'flex'} h-full flex-col border-r border-gray-200 bg-white`}>
             <div className="flex h-16 items-center justify-between border-b border-gray-200 px-5">
               <div>
                 <h1 className="text-lg font-black text-gray-950">Discussions</h1>
@@ -395,7 +432,7 @@ const MessagesPage: React.FC = () => {
             </div>
           </aside>
 
-          <section className="flex h-full flex-col bg-white">
+          <section className={`${selectedRoom ? 'flex' : 'hidden md:flex'} h-full flex-col bg-white`}>
             {!selectedRoom ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <MessageCircle size={42} className="mb-3 text-gray-300" />
@@ -421,7 +458,7 @@ const MessagesPage: React.FC = () => {
                     >
                       <ArrowLeft size={20} />
                     </button>
-                    <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-100">
+                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-gray-100">
                       {selectedRoom.postImageUrl ? (
                         <img src={selectedRoom.postImageUrl} alt="" className="h-full w-full object-cover" />
                       ) : (
@@ -444,26 +481,26 @@ const MessagesPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {selectedRoom.type === 'custom' && (
-                    <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
+                    {selectedRoom.type === 'custom' && (
                       <button
                         type="button"
                         onClick={handleShareInvite}
-                        className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-100"
+                        className="inline-flex h-10 items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 text-sm font-bold text-emerald-700 hover:bg-emerald-100 sm:px-4"
                       >
                         <Sparkles size={16} />
-                        Invite
+                        <span className="hidden sm:inline">Invite</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowRoomInfo(true)}
-                        className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-100"
-                      >
-                        <Settings size={16} />
-                        Settings
-                      </button>
-                    </div>
-                  )}
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowRoomInfo(true)}
+                      className="inline-flex h-10 items-center gap-2 rounded-full border border-gray-200 bg-white px-3 text-sm font-bold text-gray-700 hover:bg-gray-100 sm:px-4"
+                    >
+                      <Settings size={16} />
+                      <span className="hidden sm:inline">Settings</span>
+                    </button>
+                  </div>
                 </header>
 
                 <div className="flex-1 overflow-y-auto px-4 py-5">
@@ -659,13 +696,15 @@ const MessagesPage: React.FC = () => {
         </div>
       )}
 
-      {showRoomInfo && selectedRoom && selectedRoom.type === 'custom' && (
+      {showRoomInfo && selectedRoom && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+          <div className="max-h-[90dvh] w-full max-w-lg overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
               <div>
-                <h3 className="text-base font-black text-gray-950">Discussion Settings</h3>
-                <p className="text-xs text-gray-500">Invite and room info.</p>
+                <h3 className="text-base font-black text-gray-950">
+                  {selectedRoom.type === 'custom' ? 'Group Settings' : 'Discussion Settings'}
+                </h3>
+                <p className="text-xs text-gray-500">Profile, invite, and room info.</p>
               </div>
               <button
                 type="button"
@@ -676,34 +715,76 @@ const MessagesPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-4 px-5 py-5">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Room Name</p>
-                <p className="mt-1 text-sm font-semibold text-gray-950">{getDiscussionRoomName(selectedRoom)}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Description</p>
-                <p className="mt-1 text-sm text-gray-700">{selectedRoom.description || 'No description added.'}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Invite Link</p>
-                <div className="mt-2 flex gap-2">
+            <div className="max-h-[calc(90dvh-4.5rem)] space-y-4 overflow-y-auto px-5 py-5">
+              <div className="flex items-start gap-4">
+                <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-gray-100">
+                  {settingsImageUrl ? (
+                    <img src={settingsImageUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-gray-400">
+                      <ImageIcon size={26} />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Picture URL</label>
                   <input
-                    type="text"
-                    value={buildDiscussionInviteLink(selectedRoom.id)}
-                    readOnly
-                    className="min-w-0 flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+                    type="url"
+                    value={settingsImageUrl}
+                    onChange={(event) => setSettingsImageUrl(event.target.value)}
+                    disabled={!canEditSelectedRoom || savingRoomInfo}
+                    placeholder="https://example.com/group.jpg"
+                    className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-900 outline-none focus:border-emerald-500 disabled:bg-gray-50 disabled:text-gray-500"
                   />
-                  <button
-                    type="button"
-                    onClick={handleCopyInviteLink}
-                    className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700"
-                    aria-label="Copy invite link"
-                  >
-                    <Copy size={16} />
-                  </button>
                 </div>
               </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Group Name</label>
+                <input
+                  type="text"
+                  value={settingsName}
+                  onChange={(event) => setSettingsName(event.target.value)}
+                  disabled={!canEditSelectedRoom || savingRoomInfo}
+                  className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-950 outline-none focus:border-emerald-500 disabled:bg-gray-50 disabled:text-gray-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Description</label>
+                <textarea
+                  value={settingsDescription}
+                  onChange={(event) => setSettingsDescription(event.target.value)}
+                  disabled={!canEditSelectedRoom || savingRoomInfo}
+                  rows={3}
+                  className="mt-1 w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 outline-none focus:border-emerald-500 disabled:bg-gray-50 disabled:text-gray-500"
+                />
+                {!canEditSelectedRoom && (
+                  <p className="mt-2 text-xs font-medium text-gray-500">
+                    Only the creator or an admin can edit chat details.
+                  </p>
+                )}
+              </div>
+              {selectedRoom.type === 'custom' && (
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Invite Link</p>
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      type="text"
+                      value={buildDiscussionInviteLink(selectedRoom.id)}
+                      readOnly
+                      className="min-w-0 flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyInviteLink}
+                      className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700"
+                      aria-label="Copy invite link"
+                    >
+                      <Copy size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3 rounded-2xl bg-gray-50 p-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Participants</p>
@@ -716,15 +797,26 @@ const MessagesPage: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  handleShareInvite();
-                }}
-                className="w-full rounded-xl bg-gray-950 px-4 py-3 text-sm font-bold text-white hover:bg-gray-800"
-              >
-                Share Invite
-              </button>
+              {selectedRoom.type === 'custom' && (
+                <button
+                  type="button"
+                  onClick={handleShareInvite}
+                  className="w-full rounded-xl bg-gray-950 px-4 py-3 text-sm font-bold text-white hover:bg-gray-800"
+                >
+                  Share Invite
+                </button>
+              )}
+              {canEditSelectedRoom && (
+                <button
+                  type="button"
+                  onClick={handleSaveRoomInfo}
+                  disabled={savingRoomInfo || !settingsName.trim()}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {savingRoomInfo ? <Loader2 size={16} className="animate-spin" /> : <Settings size={16} />}
+                  Save Changes
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
-import { Image as ImageIcon, Loader2, Lock, MessageCircle, Plus, Send, Settings, Users, X } from 'lucide-react';
+import { ArrowLeft, Image as ImageIcon, Loader2, Lock, MessageCircle, Plus, Send, Settings, Users, X } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { canAccessDiscussion, sendDiscussionMessage } from '../lib/discussions';
 import type { DiscussionMessage, DiscussionRoom } from '../lib/discussions';
@@ -38,6 +38,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [showMobileDiscussionChat, setShowMobileDiscussionChat] = useState(false);
   const { profile, loading: profileLoading } = useUserRole();
   const { showToast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -58,6 +59,9 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
   const [newGroupVisibility, setNewGroupVisibility] = useState<'all' | 'volunteers'>('all');
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const currentUserUid = auth.currentUser?.uid;
+  const hasActiveMobileSelection = activeTab === 'groups'
+    ? !!selectedGroupId
+    : showMobileDiscussionChat && !!selectedRoomId;
 
   // Load groups
   useEffect(() => {
@@ -279,12 +283,12 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
       />
 
       <aside
-        className={`fixed right-0 top-0 z-50 h-screen w-full max-w-[820px] bg-white shadow-2xl transition-transform duration-300 ${
+        className={`fixed right-0 top-16 z-50 h-[calc(100dvh-4rem)] w-full max-w-[820px] bg-white shadow-2xl transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         <div className="grid h-full grid-cols-1 md:grid-cols-[300px_1fr]">
-          <div className="flex h-full flex-col border-r border-gray-200">
+          <div className={`${hasActiveMobileSelection ? 'hidden md:flex' : 'flex'} h-full flex-col border-r border-gray-200`}>
             {/* Header with Tabs */}
             <div className="border-b border-gray-200">
               <div className="flex h-16 items-center justify-between px-5">
@@ -301,7 +305,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowCreateGroupModal(true)}
-                      className="rounded-full p-2 text-blue-600 hover:bg-blue-50"
+                      className="rounded-full p-2 text-emerald-600 hover:bg-emerald-50"
                       title="Create group"
                       aria-label="Create group"
                     >
@@ -323,6 +327,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                   onClick={() => {
                     setActiveTab('discussions');
                     setSelectedGroupId(null);
+                    setShowMobileDiscussionChat(false);
                   }}
                   className={`flex-1 px-4 py-2 text-sm font-semibold transition-colors ${
                     activeTab === 'discussions'
@@ -336,10 +341,11 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                   onClick={() => {
                     setActiveTab('groups');
                     setSelectedGroupId(null);
+                    setShowMobileDiscussionChat(false);
                   }}
                   className={`flex-1 px-4 py-2 text-sm font-semibold transition-colors ${
                     activeTab === 'groups'
-                      ? 'border-b-2 border-blue-600 text-blue-600'
+                      ? 'border-b-2 border-emerald-600 text-emerald-600'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -376,7 +382,10 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                         <button
                           key={room.id}
                           type="button"
-                          onClick={() => onSelectRoom(room.id)}
+                          onClick={() => {
+                            onSelectRoom(room.id);
+                            setShowMobileDiscussionChat(true);
+                          }}
                           className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
                             isActive ? 'bg-gray-100' : 'hover:bg-gray-50'
                           }`}
@@ -425,7 +434,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                       <button
                         type="button"
                         onClick={() => setShowCreateGroupModal(true)}
-                        className="mt-4 inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                        className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700"
                       >
                         <Plus size={16} />
                         Create Group
@@ -441,14 +450,14 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                             type="button"
                             onClick={() => setSelectedGroupId(group.id)}
                             className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
-                              isActive ? 'bg-blue-50' : 'hover:bg-gray-50'
+                              isActive ? 'bg-emerald-50' : 'hover:bg-gray-50'
                             }`}
                           >
                             <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-gray-100">
                               {group.groupPic ? (
                                 <img src={group.groupPic} alt="" className="h-full w-full object-cover" />
                               ) : (
-                                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
                                   <Users size={20} />
                                 </div>
                               )}
@@ -466,7 +475,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                         <button
                           type="button"
                           onClick={() => setShowCreateGroupModal(true)}
-                          className="flex w-full items-center justify-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100"
+                          className="flex w-full items-center justify-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-100"
                         >
                           <Plus size={16} />
                           Create Group
@@ -479,7 +488,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
             </div>
           </div>
 
-          <div className="hidden h-full flex-col md:flex">
+          <div className={`${hasActiveMobileSelection ? 'flex' : 'hidden md:flex'} h-full flex-col`}>
             {activeTab === 'discussions' ? (
               // DISCUSSION VIEW
               <>
@@ -494,6 +503,14 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                     {rooms.find(r => r.id === selectedRoomId) && (
                       <>
                         <header className="flex h-16 shrink-0 items-center gap-3 border-b border-gray-200 px-4">
+                          <button
+                            type="button"
+                            onClick={() => setShowMobileDiscussionChat(false)}
+                            className="rounded-full p-2 text-gray-600 hover:bg-gray-100 md:hidden"
+                            aria-label="Back to discussions"
+                          >
+                            <ArrowLeft size={20} />
+                          </button>
                           <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-100">
                             {rooms.find(r => r.id === selectedRoomId)?.postImageUrl ? (
                               <img
@@ -600,6 +617,14 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                       <>
                         <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-4">
                           <div className="flex items-center gap-3 min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedGroupId(null)}
+                              className="rounded-full p-2 text-gray-600 hover:bg-gray-100 md:hidden"
+                              aria-label="Back to groups"
+                            >
+                              <ArrowLeft size={20} />
+                            </button>
                             <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-100 shrink-0">
                               {groups.find(g => g.id === selectedGroupId)?.groupPic ? (
                                 <img
@@ -608,7 +633,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
-                                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
                                   <Users size={18} />
                                 </div>
                               )}
@@ -660,7 +685,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                                       )}
                                       <div
                                         className={`rounded-3xl px-4 py-2 text-sm leading-6 ${
-                                          isMe ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'
+                                          isMe ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-900'
                                         }`}
                                       >
                                         <p className="break-words whitespace-pre-wrap">{message.text}</p>
@@ -690,7 +715,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                             <button
                               type="submit"
                               disabled={!groupMessageText.trim() || isGroupSending}
-                              className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400"
+                              className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-gray-200 disabled:text-gray-400"
                             >
                               <Send size={16} />
                             </button>
@@ -710,7 +735,15 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
           <GroupInfoModal
             isOpen={showGroupInfo}
             group={selectedGroupData}
-            members={[]}
+            members={selectedGroupData.members.map((uid) => ({
+              uid,
+              displayName: uid === currentUserUid
+                ? (profile?.displayName || profile?.name || 'You')
+                : `Member ${uid.slice(0, 6)}`,
+              avatar: uid === currentUserUid ? profile?.photoURL : undefined,
+              role: uid === currentUserUid ? profile?.role || 'member' : 'member',
+              isAdmin: selectedGroupData.admins.includes(uid)
+            }))}
             currentUserUid={currentUserUid || ''}
             onClose={() => setShowGroupInfo(false)}
             onGroupUpdated={() => {
@@ -749,7 +782,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                   type="text"
                   value={newGroupName}
                   onChange={(event) => setNewGroupName(event.target.value)}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
                   placeholder="Example: Volunteer Team"
                   autoFocus
                 />
@@ -762,7 +795,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                 <select
                   value={newGroupVisibility}
                   onChange={(event) => setNewGroupVisibility(event.target.value as 'all' | 'volunteers')}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
                 >
                   <option value="all">All signed-in users</option>
                   <option value="volunteers">Volunteers, NGOs, and Admins</option>
@@ -780,7 +813,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                 <button
                   type="submit"
                   disabled={isCreatingGroup || !newGroupName.trim()}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
                   {isCreatingGroup ? <Loader2 size={16} className="animate-spin" /> : 'Create'}
                 </button>
