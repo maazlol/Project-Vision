@@ -5,8 +5,9 @@ import { db } from '../lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import CreatePost from './CreatePost';
 import PostCard from './PostCard';
-import { Flame, Trophy, Info, ShieldCheck, Check, Users } from 'lucide-react';
+import { Flame, Trophy, Info, ShieldCheck, Check, Users, MessageCircle } from 'lucide-react';
 import { useToast } from './Toast';
+import DiscussionDrawer from './DiscussionDrawer';
 
 interface Campaign {
   id: string;
@@ -27,7 +28,7 @@ interface FeedProps {
   onSwitchTab?: () => void;
 }
 
-const Feed: React.FC<FeedProps> = ({ onSwitchTab }) => {
+const Feed: React.FC<FeedProps> = () => {
   const [filter] = useState('all');
   const [searchQuery] = useState('');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -35,6 +36,8 @@ const Feed: React.FC<FeedProps> = ({ onSwitchTab }) => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [onlineCount, setOnlineCount] = useState(142);
+  const [isDiscussionDrawerOpen, setIsDiscussionDrawerOpen] = useState(false);
+  const [selectedDiscussionRoomId, setSelectedDiscussionRoomId] = useState<string | null>(null);
   const { showToast } = useToast();
 
   const { posts, loading, error } = useFeed(filter);
@@ -170,6 +173,11 @@ const Feed: React.FC<FeedProps> = ({ onSwitchTab }) => {
 
   const ranks = ['🥇', '🥈', '🥉'];
 
+  const openDiscussionDrawer = (roomId?: string) => {
+    if (roomId) setSelectedDiscussionRoomId(roomId);
+    setIsDiscussionDrawerOpen(true);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col lg:flex-row gap-8">
@@ -232,7 +240,11 @@ const Feed: React.FC<FeedProps> = ({ onSwitchTab }) => {
             )}
 
             {filteredPosts.map((post) => (
-              <PostCard key={post.id} post={post} />
+              <PostCard 
+                key={post.id} 
+                post={post}
+                onOpenDiscussion={(roomId) => openDiscussionDrawer(roomId)}
+              />
             ))}
           </div>
         </div>
@@ -324,21 +336,27 @@ const Feed: React.FC<FeedProps> = ({ onSwitchTab }) => {
             </div>
             <div className="text-sm font-black text-emerald-600">{onlineCount}</div>
           </div>
-
-          {/* Volunteer CTA */}
-          <div className="bg-emerald-600/5 border border-emerald-600/10 rounded-2xl p-8 text-center">
-            <h4 className="text-lg font-extrabold text-gray-900 mb-2">Become a Volunteer!</h4>
-            <p className="text-sm text-gray-600 mb-6">NGOs need your help. Donate your time to make a difference.</p>
-            <button 
-              onClick={onSwitchTab}
-              className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition-all"
-            >
-              Join as Volunteer
-            </button>
-          </div>
         </div>
 
       </div>
+      {profile && (
+        <>
+          <button
+            type="button"
+            onClick={() => openDiscussionDrawer()}
+            className="fixed bottom-5 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xl shadow-emerald-900/20 transition-all hover:bg-emerald-700 lg:bottom-auto lg:right-0 lg:top-1/2 lg:h-auto lg:w-auto lg:-translate-y-1/2 lg:rounded-l-2xl lg:rounded-r-none lg:px-3 lg:py-4"
+            aria-label="Open discussions"
+          >
+            <MessageCircle size={22} />
+          </button>
+          <DiscussionDrawer
+            isOpen={isDiscussionDrawerOpen}
+            selectedRoomId={selectedDiscussionRoomId}
+            onSelectRoom={setSelectedDiscussionRoomId}
+            onClose={() => setIsDiscussionDrawerOpen(false)}
+          />
+        </>
+      )}
     </div>
   );
 };

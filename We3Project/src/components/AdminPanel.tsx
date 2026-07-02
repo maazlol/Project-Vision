@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { collection, getDocs, doc, updateDoc, addDoc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, addDoc, writeBatch, serverTimestamp, query, where } from 'firebase/firestore';
 import * as Icons from 'lucide-react';
 import { useUserRole } from '../lib/useUserRole';
 import { Link as RouterLink } from 'react-router-dom';
@@ -26,7 +26,7 @@ export interface Volunteer {
   userId?: string;
   name: string;
   cnic: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'revoked';
   cnicFront?: string;
   cnicBack?: string;
   selfie?: string;
@@ -36,6 +36,18 @@ export interface Volunteer {
   bio?: string;
   interests?: string;
   submittedAt?: any;
+}
+
+export interface ActiveVolunteer {
+  id: string;
+  displayName?: string;
+  name?: string;
+  email?: string;
+  city?: string;
+  phone?: string;
+  role?: string;
+  isVolunteer?: boolean;
+  isVerified?: boolean;
 }
 
 export interface ViewToHelpItem {
@@ -54,7 +66,7 @@ export interface LogisticsItem {
   delivered: boolean;
 }
 
-type TabType = 'sponsors' | 'volunteers' | 'viewToHelp' | 'logistics';
+type TabType = 'sponsors' | 'volunteers' | 'activeVolunteers' | 'viewToHelp' | 'logistics';
 
 export default function AdminPanel() {
   const { profile, loading: authLoading } = useUserRole();
@@ -68,6 +80,7 @@ export default function AdminPanel() {
 
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
+  const [activeVolunteers, setActiveVolunteers] = useState<ActiveVolunteer[]>([]);
   const [viewToHelp, setViewToHelp] = useState<ViewToHelpItem[]>([]);
   const [logistics, setLogistics] = useState<LogisticsItem[]>([]);
 
@@ -78,7 +91,8 @@ export default function AdminPanel() {
       setIsLoading(true);
       setError(null);
       try {
-        const querySnapshot = await getDocs(collection(db, activeTab));
+        const collectionName = activeTab === 'activeVolunteers' ? 'users' : activeTab;
+        const querySnapshot = await getDocs(collection(db, collectionName));
         const data = querySnapshot.docs.map(docSnap => ({
           id: docSnap.id,
           ...docSnap.data()
@@ -86,6 +100,9 @@ export default function AdminPanel() {
 
         if (activeTab === 'sponsors') setSponsors(data as Sponsor[]);
         else if (activeTab === 'volunteers') setVolunteers(data as Volunteer[]);
+        else if (activeTab === 'activeVolunteers') {
+          setActiveVolunteers((data as ActiveVolunteer[]).filter((user) => user.role === 'volunteer' || user.isVolunteer === true));
+        }
         else if (activeTab === 'viewToHelp') setViewToHelp(data as ViewToHelpItem[]);
         else if (activeTab === 'logistics') setLogistics(data as LogisticsItem[]);
       } catch (err: any) {
@@ -102,40 +119,84 @@ export default function AdminPanel() {
   const handleAction = async (tab: TabType, id: string, action: string) => {
     setIsLoading(true);
     try {
-      const docRef = doc(db, tab, id);
+      const collectionName = tab === 'activeVolunteers' ? 'users' : tab;
+      const docRef = doc(db, collectionName, id);
       let updateData: any = {};
 
       if (action === 'approve') updateData = { status: 'approved' };
       else if (action === 'reject') updateData = { status: 'rejected' };
+      else if (action === 'revoke') updateData = {
+        role: 'supporter',
+        isVolunteer: false,
+        isVerified: false,
+        volunteerRevokedAt: serverTimestamp()
+      };
       else if (action === 'verify') updateData = { walletVerified: true };
       else if (action === 'deliver') updateData = { delivered: true };
 
-      await updateDoc(docRef, updateData);
-
-      // --- Critical Fix: Update User Role in 'users' collection ---
       if (tab === 'volunteers') {
         const volunteerData = volunteers.find(v => v.id === id);
+        const batch = writeBatch(db);
+        batch.update(docRef, {
+          ...updateData,
+          ...(action === 'approve' ? { approvedAt: serverTimestamp() } : {}),
+          ...(action === 'reject' ? { rejectedAt: serverTimestamp() } : {})
+        });
+
         if (volunteerData?.userId) {
           const userRef = doc(db, 'users', volunteerData.userId);
           
           if (action === 'approve') {
-            await setDoc(userRef, { 
+            batch.set(userRef, { 
+              uid: volunteerData.userId,
+              name: volunteerData.name,
+              displayName: volunteerData.name,
+              email: volunteerData.email || '',
+              phone: volunteerData.phone || '',
+              city: volunteerData.city || '',
               role: 'volunteer',
               isVerified: true,
-              isVolunteer: true
+              isVolunteer: true,
+              volunteerApplicationId: id,
+              volunteerApprovedAt: serverTimestamp()
             }, { merge: true });
           } else if (action === 'reject') {
-            await setDoc(userRef, { 
+            batch.set(userRef, { 
               role: 'supporter',
-              isVolunteer: false
+              isVolunteer: false,
+              isVerified: false,
+              volunteerApplicationId: id,
+              volunteerRejectedAt: serverTimestamp()
             }, { merge: true });
           }
         }
+
+        await batch.commit();
+      } else if (tab === 'activeVolunteers' && action === 'revoke') {
+        const batch = writeBatch(db);
+        batch.update(docRef, updateData);
+
+        const volunteerSnapshot = await getDocs(query(
+          collection(db, 'volunteers'),
+          where('userId', '==', id),
+          where('status', '==', 'approved')
+        ));
+
+        volunteerSnapshot.docs.forEach(volunteerDoc => {
+          batch.update(volunteerDoc.ref, {
+            status: 'revoked',
+            revokedAt: serverTimestamp()
+          });
+        });
+
+        await batch.commit();
+      } else {
+        await updateDoc(docRef, updateData);
       }
-      // -----------------------------------------------------------
       
       if (tab === 'sponsors') setSponsors(prev => prev.map(i => i.id === id ? { ...i, ...updateData } : i));
       else if (tab === 'volunteers') setVolunteers(prev => prev.map(i => i.id === id ? { ...i, ...updateData } : i));
+      else if (tab === 'activeVolunteers') setActiveVolunteers(prev => prev.filter(i => i.id !== id));
       else if (tab === 'viewToHelp') setViewToHelp(prev => prev.map(i => i.id === id ? { ...i, ...updateData } : i));
       else if (tab === 'logistics') setLogistics(prev => prev.map(i => i.id === id ? { ...i, ...updateData } : i));
       
@@ -227,6 +288,7 @@ export default function AdminPanel() {
             {[
               { id: 'sponsors', icon: Icons.Heart, label: 'Sponsors' },
               { id: 'volunteers', icon: Icons.Users, label: 'Volunteers' },
+              { id: 'activeVolunteers', icon: Icons.UserMinus, label: 'Active' },
               { id: 'viewToHelp', icon: Icons.BarChart3, label: 'View to Help' },
               { id: 'logistics', icon: Icons.Truck, label: 'Logistics' },
             ].map((tab) => (
@@ -257,9 +319,10 @@ export default function AdminPanel() {
             <h3 className="font-black text-slate-800 uppercase tracking-wider text-sm flex items-center gap-2">
               {activeTab === 'sponsors' && <Icons.Heart size={16} className="text-rose-500"/>}
               {activeTab === 'volunteers' && <Icons.Users size={16} className="text-emerald-500"/>}
+              {activeTab === 'activeVolunteers' && <Icons.UserMinus size={16} className="text-teal-500"/>}
               {activeTab === 'viewToHelp' && <Icons.BarChart3 size={16} className="text-indigo-500"/>}
               {activeTab === 'logistics' && <Icons.Truck size={16} className="text-amber-500"/>}
-              {activeTab.toUpperCase()} Records
+              {activeTab === 'activeVolunteers' ? 'ACTIVE VOLUNTEERS' : `${activeTab.toUpperCase()} Records`}
             </h3>
             <div className="flex items-center gap-4">
               <button onClick={handleSeedData} className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all flex items-center gap-1.5">
@@ -368,6 +431,60 @@ export default function AdminPanel() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            )}
+
+            {activeTab === 'activeVolunteers' && (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/50">
+                    <th className="p-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Volunteer</th>
+                    <th className="p-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Contact</th>
+                    <th className="p-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                    <th className="p-5 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Permissions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {activeVolunteers.length === 0 && !isLoading && <EmptyRow colSpan={4} message="No active volunteers." />}
+                  {activeVolunteers.map((v) => {
+                    const volunteerName = v.displayName || v.name || 'Unnamed Volunteer';
+                    return (
+                      <tr key={v.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-5 font-bold text-slate-700">
+                          <div className="flex items-center gap-2">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-xs">
+                              {volunteerName.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'V'}
+                            </div>
+                            <div>
+                              <div>{volunteerName}</div>
+                              <div className="text-[10px] text-emerald-500 font-black uppercase">{v.city || 'N/A'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-5 text-xs font-medium text-slate-500">
+                          <div>{v.email || 'N/A'}</div>
+                          <div className="mt-1 font-mono text-slate-400">{v.phone || v.id}</div>
+                        </td>
+                        <td className="p-5">
+                          <span className="text-[10px] font-black uppercase px-2 py-1 rounded-md bg-emerald-100 text-emerald-600">
+                            Posting enabled
+                          </span>
+                        </td>
+                        <td className="p-5 text-right">
+                          <button
+                            onClick={() => {
+                              const confirmed = window.confirm(`Remove volunteer posting permissions for ${volunteerName}?`);
+                              if (confirmed) handleAction('activeVolunteers', v.id, 'revoke');
+                            }}
+                            className="bg-white text-rose-500 border border-rose-100 px-4 py-2 rounded-xl text-xs font-bold hover:bg-rose-50 transition-all inline-flex items-center gap-2"
+                          >
+                            <Icons.UserMinus size={14} /> Remove Perms
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

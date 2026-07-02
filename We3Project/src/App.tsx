@@ -9,6 +9,8 @@ import Feed from './components/Feed';
 import VolunteerForm from './components/VolunteerForm';
 import SponsorPage from './components/SponsorPage';
 import AdminPanel from './components/AdminPanel';
+import MessagesPage from './components/MessagesPage';
+import JoinGroupPage from './components/JoinGroupPage';
 import { useEffect } from 'react';
 
 function App() {
@@ -36,6 +38,12 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/discussions" element={<MessagesPage />} />
+          <Route path="/discussions/:discussionId" element={<MessagesPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/messages/:discussionId" element={<MessagesPage />} />
+          <Route path="/chat/join/:inviteToken" element={<JoinGroupPage />} />
+          <Route path="/groups/join/:inviteToken" element={<JoinGroupPage />} />
           <Route path="/feed" element={
             <div className="pt-16"> {/* Spacer for fixed navbar */}
               <div className="bg-emerald-600 text-white py-8 md:py-10">

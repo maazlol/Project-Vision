@@ -35,8 +35,15 @@ export default function Login() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const pendingDiscussionJoin = sessionStorage.getItem('pendingDiscussionJoin');
+        const pendingGroupJoin = sessionStorage.getItem('pendingGroupJoin');
         if (userDoc.exists() && userDoc.data().username) {
-          navigate('/dashboard');
+          if (pendingGroupJoin) {
+            sessionStorage.removeItem('pendingGroupJoin');
+            navigate(`/chat/join/${encodeURIComponent(pendingGroupJoin)}`);
+          } else {
+            navigate(pendingDiscussionJoin ? `/discussions?join=${encodeURIComponent(pendingDiscussionJoin)}` : '/dashboard');
+          }
         } else {
           setShowOnboarding(true);
         }
@@ -126,7 +133,14 @@ export default function Login() {
         avatarBg: '#f3f4f6'
       });
       showToast('Welcome to FreeHunger!', 'success');
-      navigate('/dashboard');
+      const pendingDiscussionJoin = sessionStorage.getItem('pendingDiscussionJoin');
+      const pendingGroupJoin = sessionStorage.getItem('pendingGroupJoin');
+      if (pendingGroupJoin) {
+        sessionStorage.removeItem('pendingGroupJoin');
+        navigate(`/chat/join/${encodeURIComponent(pendingGroupJoin)}`);
+      } else {
+        navigate(pendingDiscussionJoin ? `/discussions?join=${encodeURIComponent(pendingDiscussionJoin)}` : '/dashboard');
+      }
     } catch (e: any) {
       showToast('Error saving profile.', 'error');
     } finally {

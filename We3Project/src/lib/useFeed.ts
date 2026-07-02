@@ -29,6 +29,8 @@ export interface Post {
   comments: Comment[];
   imageUrl?: string | null;
   createdAt: Timestamp | null;
+  isDiscussionEnabled?: boolean;
+  discussionAudience?: 'all' | 'restricted';
   userRole?: string;
   isVerified?: boolean;
   taggedNGO?: { uid: string; name: string } | null;

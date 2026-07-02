@@ -1,25 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../lib/firebase';
 import { doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { Heart, MessageSquare, Share2, MoreHorizontal, Trash2, Flag, Send, ShieldCheck } from 'lucide-react';
+import { Heart, MessageSquare, Share2, MoreHorizontal, Trash2, Flag, Send, ShieldCheck, MessageCircle, X, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from './Toast';
+import { useNavigate } from 'react-router-dom';
+import { canAccessDiscussion, joinDiscussionRoom } from '../lib/discussions';
+import { useUserRole } from '../lib/useUserRole';
 
 interface PostCardProps {
   post: any;
+  onOpenDiscussion?: (roomId: string) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onOpenDiscussion }) => {
   const [isLiking, setIsLiking] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<any[]>([]);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [isJoiningDiscussion, setIsJoiningDiscussion] = useState(false);
   
   const { showToast } = useToast();
+  const { profile } = useUserRole();
+  const navigate = useNavigate();
   const currentUser = auth.currentUser;
   const isLiked = currentUser ? (post.likes || []).includes(currentUser.uid) : false;
+  const isDiscussionEnabled = post.isDiscussionEnabled === true;
+  const discussionAudience = post.discussionAudience || 'all';
 
   // Real-time comments listener
   useEffect(() => {
@@ -128,6 +138,45 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       showToast('Post deleted', 'success');
     } catch (e) {
       showToast('Error deleting post', 'error');
+    }
+  };
+
+  const handleDiscussClick = async () => {
+    if (!currentUser || !profile) {
+      showToast('Please login to join discussions', 'info');
+      return;
+    }
+
+    if (!post.id || post.id.startsWith('demo-')) {
+      showToast('Discussions are not available for demo posts', 'info');
+      return;
+    }
+
+    if (!canAccessDiscussion(profile, discussionAudience)) {
+      showToast('This room is limited to Volunteers and NGOs.', 'error');
+      return;
+    }
+
+    setShowJoinModal(true);
+  };
+
+  const handleConfirmJoin = async () => {
+    if (!profile) return;
+
+    setIsJoiningDiscussion(true);
+    try {
+      await joinDiscussionRoom(post, profile);
+      setShowJoinModal(false);
+      if (onOpenDiscussion) {
+        onOpenDiscussion(post.id);
+      } else {
+        navigate(`/discussions/${post.id}`);
+      }
+    } catch (e: any) {
+      console.error('Discussion join error:', e);
+      showToast(e.message || 'Failed to join discussion.', 'error');
+    } finally {
+      setIsJoiningDiscussion(false);
     }
   };
 
@@ -240,6 +289,16 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             Comment
           </button>
 
+          {isDiscussionEnabled && (
+            <button 
+              onClick={handleDiscussClick}
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-sm text-gray-600 hover:bg-gray-100 transition-all"
+            >
+              <MessageCircle size={18} />
+              Discuss
+            </button>
+          )}
+
           <button 
             onClick={handleShare}
             className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-sm text-gray-600 hover:bg-gray-100 transition-all"
@@ -311,25 +370,63 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           )}
         </div>
       )}
+
+      {showJoinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl border border-white/70 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <MessageCircle size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-gray-900">Join Discussion</h3>
+                  <p className="text-xs text-gray-500">
+                    {discussionAudience === 'restricted' ? 'Volunteers & NGOs only' : 'Open to everyone'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowJoinModal(false)}
+                className="p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-5 py-5">
+              <p className="text-sm font-semibold text-gray-800">
+                Are you sure you want to join this discussion?
+              </p>
+              <p className="mt-2 text-xs leading-5 text-gray-500">
+                Joining adds this room to your Messages page and lets other participants see your messages.
+              </p>
+            </div>
+
+            <div className="flex gap-2 bg-gray-50 px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setShowJoinModal(false)}
+                disabled={isJoiningDiscussion}
+                className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmJoin}
+                disabled={isJoiningDiscussion}
+                className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isJoiningDiscussion ? <Loader2 size={16} className="animate-spin" /> : 'Join'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-const Loader2 = ({ size, className }: { size: number; className?: string }) => (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={`lucide lucide-loader-2 ${className}`}
-    >
-      <path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/>
-    </svg>
-);
 
 export default PostCard;

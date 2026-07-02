@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { db, auth, storage } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Image, Send, X, Loader2, Smile } from 'lucide-react';
+import { Image, Send, X, Loader2, Smile, MessagesSquare } from 'lucide-react';
 import { useToast } from './Toast';
+import type { DiscussionAudience } from '../lib/discussions';
 
 const CreatePost = () => {
   const [text, setText] = useState('');
@@ -11,6 +12,8 @@ const CreatePost = () => {
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [visibility, setVisibility] = useState('public');
+  const [isDiscussionEnabled, setIsDiscussionEnabled] = useState(false);
+  const [discussionAudience, setDiscussionAudience] = useState<DiscussionAudience>('all');
   const { showToast } = useToast();
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,6 +50,8 @@ const CreatePost = () => {
         timestamp: serverTimestamp(),
         likes: [],
         visibility,
+        isDiscussionEnabled,
+        discussionAudience: isDiscussionEnabled ? discussionAudience : 'all',
         type: 'general'
       };
 
@@ -55,6 +60,8 @@ const CreatePost = () => {
       setText('');
       setImage(null);
       setPreview(null);
+      setIsDiscussionEnabled(false);
+      setDiscussionAudience('all');
       showToast('Post shared successfully!', 'success');
     } catch (e: any) {
       console.error("Post error:", e);
@@ -97,6 +104,42 @@ const CreatePost = () => {
             </button>
           </div>
         )}
+
+        <div className="mb-4 rounded-xl border border-gray-100 bg-slate-50 p-3">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isDiscussionEnabled}
+              onChange={(e) => setIsDiscussionEnabled(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+            />
+            <span className="flex-1">
+              <span className="flex items-center gap-2 text-sm font-bold text-gray-800">
+                <MessagesSquare size={17} className="text-emerald-600" />
+                Enable Discussion Room
+              </span>
+              <span className="block text-xs text-gray-500 mt-0.5">
+                Let people join a dedicated chat room for this post.
+              </span>
+            </span>
+          </label>
+
+          {isDiscussionEnabled && (
+            <div className="mt-3 pl-7">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                Discussion audience
+              </label>
+              <select
+                value={discussionAudience}
+                onChange={(e) => setDiscussionAudience(e.target.value as DiscussionAudience)}
+                className="w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 focus:border-emerald-500 focus:ring-emerald-500/20"
+              >
+                <option value="all">For All People</option>
+                <option value="restricted">For Volunteers & NGOs Only</option>
+              </select>
+            </div>
+          )}
+        </div>
 
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
           <div className="flex items-center gap-1">
