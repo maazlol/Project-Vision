@@ -67,7 +67,6 @@ export const getDiscussionRoomName = (room: Partial<DiscussionRoom> | null | und
 };
 
 export const buildDiscussionInviteLink = (roomId: string) => {
-  const hashPath = '/#/discussions';
   const origin = window.location.origin;
   const base = import.meta.env.BASE_URL;
   return `${origin}${base}#/discussions?join=${encodeURIComponent(roomId)}`;
