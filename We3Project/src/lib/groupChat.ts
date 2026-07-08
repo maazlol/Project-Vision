@@ -451,8 +451,9 @@ export const sendGroupMessage = async (
  * Generate invite link for group
  */
 export const generateGroupInviteLink = (inviteToken: string): string => {
-  const basePath = window.location.origin;
-  return `${basePath}/#/chat/join/${encodeURIComponent(inviteToken)}`;
+  const origin = window.location.origin;
+  const base = import.meta.env.BASE_URL;
+  return `${origin}${base}#/chat/join/${encodeURIComponent(inviteToken)}`;
 };
 
 /**
