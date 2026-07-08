@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   collection,
   onSnapshot,
@@ -64,10 +65,10 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
   const [newGroupVisibility, setNewGroupVisibility] = useState<'all' | 'volunteers'>('all');
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
+
   const { profile, loading: profileLoading } = useUserRole();
   const { showToast } = useToast();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const currentUserUid = auth.currentUser?.uid;
 
   // Load user's groups
@@ -170,9 +171,31 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
     loadMembers();
   }, [selectedGroup, refreshTrigger]);
 
-  // Auto scroll to latest message
+  // Lock body scroll when panel is open
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    }
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [isOpen]);
+
+  // Auto scroll to latest message
+  useLayoutEffect(() => {
+    const scrollContainer = messagesContainerRef.current;
+    if (!scrollContainer) return;
+
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
   }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -230,7 +253,7 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -239,12 +262,15 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
       />
 
       {/* Panel */}
-      <aside className="fixed right-0 top-0 z-50 h-screen w-full max-w-4xl bg-slate-900 shadow-2xl transition-transform duration-300">
-        <div className="grid h-full grid-cols-1 md:grid-cols-[320px_1fr]">
+      <aside
+        className="fixed inset-0 z-50 w-full overflow-hidden bg-slate-900 shadow-2xl transition-transform duration-300 md:left-auto md:max-w-4xl"
+        style={{ height: '100dvh', maxHeight: '100dvh' }}
+      >
+        <div className="grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)] overflow-hidden md:grid-cols-[320px_minmax(0,1fr)]">
           {/* Groups List Sidebar */}
-          <div className="hidden md:flex flex-col bg-slate-950 border-r border-slate-800">
+          <div className="hidden h-full min-h-0 flex-col overflow-hidden bg-slate-950 border-r border-slate-800 md:flex">
             {/* Header */}
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+            <div className="shrink-0 p-4 border-b border-slate-800 flex items-center justify-between">
               <h2 className="font-bold text-white flex items-center gap-2">
                 <Users className="w-5 h-5" />
                 Groups
@@ -270,7 +296,7 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
             </div>
 
             {/* Groups List */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {groupsLoading ? (
                 <div className="p-4 text-center text-slate-400 text-sm">
                   Loading groups...
@@ -331,10 +357,10 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
           </div>
 
           {/* Main Chat Area */}
-          <div className="flex flex-col bg-slate-900">
+          <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-slate-900">
             {/* Chat Header */}
             {selectedGroup ? (
-              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <div className="min-h-0 p-4 border-b border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   {selectedGroup.groupPic ? (
                     <img
@@ -373,7 +399,7 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <div className="min-h-0 p-4 border-b border-slate-800 flex items-center justify-between">
                 <p className="text-slate-400">No group selected</p>
                 <button
                   onClick={onClose}
@@ -385,7 +411,10 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
             )}
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div
+              ref={messagesContainerRef}
+              className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4"
+            >
               {messagesLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <p className="text-slate-400">Loading messages...</p>
@@ -444,31 +473,28 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
                   );
                 })
               )}
-              <div ref={messagesEndRef} />
             </div>
 
             {/* Message Input */}
-            {selectedGroup && (
-              <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-800">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Type a message..."
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                    disabled={isSending}
-                    className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-full text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!messageText.trim() || isSending}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors disabled:opacity-50 flex items-center justify-center"
-                  >
-                    <Send className="w-5 h-5" />
-                  </button>
-                </div>
-              </form>
-            )}
+            <form onSubmit={handleSendMessage} className="min-h-0 border-t border-slate-800 bg-slate-900 p-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder={selectedGroup ? 'Type a message...' : 'Select a group to message...'}
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  disabled={!selectedGroup || isSending}
+                  className="min-w-0 flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-full text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={!selectedGroup || !messageText.trim() || isSending}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors disabled:opacity-50 flex items-center justify-center"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </aside>
@@ -551,7 +577,8 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
           </div>
         </div>
       )}
-    </>
+    </>,
+    document.body
   );
 };
 

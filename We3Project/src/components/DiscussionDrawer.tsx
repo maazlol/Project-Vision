@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { ArrowLeft, Image as ImageIcon, Loader2, Lock, MessageCircle, Plus, Send, Settings, Users, X } from 'lucide-react';
@@ -41,7 +42,8 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
   const [showMobileDiscussionChat, setShowMobileDiscussionChat] = useState(false);
   const { profile, loading: profileLoading } = useUserRole();
   const { showToast } = useToast();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const discussionMessagesRef = useRef<HTMLDivElement>(null);
+  const groupMessagesRef = useRef<HTMLDivElement>(null);
 
   // Group Chat State variables
   const [activeTab, setActiveTab] = useState<'discussions' | 'groups'>('discussions');
@@ -250,8 +252,32 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
   }, [isOpen, selectedRoom, profile]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!isOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [isOpen]);
+
+  useLayoutEffect(() => {
+    const scrollContainer = discussionMessagesRef.current;
+    if (!scrollContainer) return;
+
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
   }, [messages]);
+
+  useLayoutEffect(() => {
+    const scrollContainer = groupMessagesRef.current;
+    if (!scrollContainer) return;
+
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+  }, [groupMessages]);
 
   const handleSend = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -273,7 +299,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
 
   // Selected room memo and effect are defined above.
 
-  return (
+  return createPortal(
     <>
       <div
         className={`fixed inset-0 z-40 bg-slate-950/30 backdrop-blur-sm transition-opacity ${
@@ -283,14 +309,15 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
       />
 
       <aside
-        className={`fixed right-0 top-16 z-50 h-[calc(100dvh-4rem)] w-full max-w-[820px] bg-white shadow-2xl transition-transform duration-300 ${
+        className={`fixed inset-x-0 bottom-0 top-16 z-50 w-full overflow-hidden bg-white shadow-2xl transition-transform duration-300 md:left-auto md:max-w-[820px] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
+        style={{ height: 'calc(100dvh - 4rem)', maxHeight: 'calc(100dvh - 4rem)' }}
       >
-        <div className="grid h-full grid-cols-1 md:grid-cols-[300px_1fr]">
-          <div className={`${hasActiveMobileSelection ? 'hidden md:flex' : 'flex'} h-full flex-col border-r border-gray-200`}>
+        <div className="grid h-full min-h-0 grid-cols-1 overflow-hidden md:grid-cols-[300px_minmax(0,1fr)]">
+          <div className={`${hasActiveMobileSelection ? 'hidden md:flex' : 'flex'} h-full min-h-0 flex-col overflow-hidden border-r border-gray-200`}>
             {/* Header with Tabs */}
-            <div className="border-b border-gray-200">
+            <div className="shrink-0 border-b border-gray-200">
               <div className="flex h-16 items-center justify-between px-5">
                 <div>
                   <h2 className="text-lg font-black text-gray-950">
@@ -355,7 +382,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
             </div>
 
             {/* Content based on tab */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {activeTab === 'discussions' ? (
                 // DISCUSSIONS TAB CONTENT
                 <>
@@ -488,7 +515,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
             </div>
           </div>
 
-          <div className={`${hasActiveMobileSelection ? 'flex' : 'hidden md:flex'} h-full flex-col`}>
+          <div className={`${hasActiveMobileSelection ? 'flex' : 'hidden md:flex'} h-full min-h-0 flex-col overflow-hidden`}>
             {activeTab === 'discussions' ? (
               // DISCUSSION VIEW
               <>
@@ -536,7 +563,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                           </div>
                         </header>
 
-                        <div className="flex-1 overflow-y-auto px-4 py-5">
+                        <div ref={discussionMessagesRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5">
                           {messagesLoading ? (
                             <div className="flex h-full items-center justify-center text-sm font-semibold text-gray-400">
                               Loading messages...
@@ -573,7 +600,6 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                                   </div>
                                 );
                               })}
-                              <div ref={messagesEndRef} />
                             </div>
                           )}
                         </div>
@@ -660,7 +686,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                           </button>
                         </header>
 
-                        <div className="flex-1 overflow-y-auto px-4 py-5">
+                        <div ref={groupMessagesRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5">
                           {groupMessagesLoading ? (
                             <div className="flex h-full items-center justify-center text-sm font-semibold text-gray-400">
                               Loading messages...
@@ -697,7 +723,6 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                                   </div>
                                 );
                               })}
-                              <div ref={messagesEndRef} />
                             </div>
                           )}
                         </div>
@@ -823,7 +848,8 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
         </div>
       )}
 
-y    </>
+    </>,
+    document.body
   );
 };
 
