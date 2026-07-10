@@ -330,19 +330,21 @@ const MessagesPage: React.FC = () => {
 
   const handleSend = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!profile || !selectedRoom || !messageText.trim() || isSending) return;
+    const nextMessageText = messageText.trim();
+    if (!profile || !selectedRoom || !nextMessageText || isSending) return;
 
     if (!canAccessDiscussion(profile, selectedRoom.audience)) {
       showToast('You do not have access to this room.', 'error');
       return;
     }
 
+    setMessageText('');
     setIsSending(true);
     try {
-      await sendDiscussionMessage(selectedRoom.id, profile, messageText);
-      setMessageText('');
+      await sendDiscussionMessage(selectedRoom.id, profile, nextMessageText);
     } catch (error) {
       console.error('Send discussion message error:', error);
+      setMessageText(nextMessageText);
       showToast('Failed to send message.', 'error');
     } finally {
       setIsSending(false);
@@ -503,7 +505,7 @@ const MessagesPage: React.FC = () => {
                   </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto px-4 py-5">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-5">
                   {messagesLoading ? (
                     <div className="flex h-full items-center justify-center text-sm font-semibold text-gray-400">
                       Loading messages...
@@ -519,19 +521,21 @@ const MessagesPage: React.FC = () => {
                       {messages.map((message) => {
                         const isMe = message.senderId === currentUserId;
                         return (
-                          <div key={message.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`flex max-w-[78%] flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                          <div key={message.id} className={`flex min-w-0 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`flex max-w-[78%] min-w-0 flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                               {!isMe && (
                                 <span className="mb-1 px-1 text-[11px] font-bold text-gray-500">
                                   {message.senderName}
                                 </span>
                               )}
                               <div
-                                className={`rounded-3xl px-4 py-2 text-sm leading-6 ${
+                                className={`max-w-full min-w-0 overflow-hidden rounded-3xl px-4 py-2 text-sm leading-6 ${
                                   isMe ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-900'
                                 }`}
                               >
-                                <p className="whitespace-pre-wrap break-words">{message.text}</p>
+                                <p className="max-w-full whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">
+                                  {message.text}
+                                </p>
                               </div>
                               <span className="mt-1 px-1 text-[10px] font-medium text-gray-400">
                                 {formatTime(message.timestamp)}

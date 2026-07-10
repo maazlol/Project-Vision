@@ -200,14 +200,16 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile || !selectedGroup || !messageText.trim() || isSending) return;
+    const nextMessageText = messageText.trim();
+    if (!profile || !selectedGroup || !nextMessageText || isSending) return;
 
+    setMessageText('');
     setIsSending(true);
     try {
-      await sendGroupMessage(selectedGroup.id, profile, messageText);
-      setMessageText('');
+      await sendGroupMessage(selectedGroup.id, profile, nextMessageText);
     } catch (error) {
       console.error('Error sending message:', error);
+      setMessageText(nextMessageText);
       showToast('Failed to send message', 'error');
     } finally {
       setIsSending(false);
@@ -413,7 +415,7 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
             {/* Messages Area */}
             <div
               ref={messagesContainerRef}
-              className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4"
+              className="min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden overscroll-contain p-4"
             >
               {messagesLoading ? (
                 <div className="flex items-center justify-center h-full">
@@ -431,10 +433,10 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
                   return (
                     <div
                       key={message.id}
-                      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                      className={`flex min-w-0 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`flex gap-2 max-w-xs lg:max-w-md ${
+                        className={`flex min-w-0 max-w-[85%] gap-2 lg:max-w-md ${
                           isCurrentUser ? 'flex-row-reverse' : ''
                         }`}
                       >
@@ -456,13 +458,15 @@ const GroupChatPanel: React.FC<GroupChatPanelProps> = ({
                             </p>
                           )}
                           <div
-                            className={`px-4 py-2 rounded-2xl break-words ${
+                            className={`max-w-full min-w-0 overflow-hidden rounded-2xl px-4 py-2 break-words ${
                               isCurrentUser
                                 ? 'bg-blue-600 text-white rounded-br-none'
                                 : 'bg-slate-800 text-white rounded-bl-none'
                             }`}
                           >
-                            <p className="text-sm">{message.text}</p>
+                            <p className="max-w-full whitespace-pre-wrap text-sm [overflow-wrap:anywhere] [word-break:break-word]">
+                              {message.text}
+                            </p>
                           </div>
                           <p className="text-xs text-slate-500 mt-1">
                             {formatTime(message.timestamp)}

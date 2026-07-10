@@ -69,3 +69,15 @@ Client checks live in `src/lib/discussions.ts`, but the enforced security model 
 - message creation requires `senderId == request.auth.uid`
 - first join creates or updates `discussions/{postId}` with the user's uid in `participants`
 - volunteer permissions are granted and revoked from the admin panel by updating the user's role fields in `users/{uid}`
+
+## Message UI Behavior
+
+Discussion and group chat message bubbles must remain inside the chat viewport on every responsive layout. Long pasted text, URLs, and unbroken strings should wrap onto the next line instead of causing horizontal scroll or escaping the bubble.
+
+The current UI pattern is:
+
+- chat scroll containers allow vertical scrolling and hide horizontal overflow
+- message row and bubble wrappers include `min-w-0`
+- bubble wrappers cap width and hide overflow
+- text uses `white-space: pre-wrap`, `overflow-wrap: anywhere`, and `word-break: break-word`
+- send handlers clear the input immediately after capturing the trimmed message text, then restore it only if the async send fails

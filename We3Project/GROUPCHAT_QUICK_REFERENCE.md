@@ -276,6 +276,16 @@ All components are fully responsive:
 - **Tablet**: 2-column with sidebar
 - **Desktop**: Full 2-column with expanded features
 
+## Chat Message Rendering Behavior
+
+Chat message surfaces should keep long content readable inside the available chat width:
+- Message containers use `min-w-0` and hidden horizontal overflow so bubbles cannot push outside the chat panel.
+- Message text uses preserved whitespace plus forced wrapping for long unbroken words, pasted IDs, and URLs.
+- Sending clears the input immediately using the trimmed message captured before the async Firestore write.
+- If the send fails, the captured message text is restored to the input so the user can retry.
+
+Apply this pattern to all message UIs that render group or discussion text, including `GroupChatPanel`, `GroupChatDrawer`, `DiscussionDrawer`, `MessagesPage`, and post discussion panels.
+
 ## 🚨 Error Handling
 
 ```typescript

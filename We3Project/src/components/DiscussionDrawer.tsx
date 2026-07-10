@@ -139,14 +139,16 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
 
   const handleGroupSend = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!profile || !selectedGroupId || !groupMessageText.trim() || isGroupSending) return;
+    const messageText = groupMessageText.trim();
+    if (!profile || !selectedGroupId || !messageText || isGroupSending) return;
 
+    setGroupMessageText('');
     setIsGroupSending(true);
     try {
-      await sendGroupMessage(selectedGroupId, profile, groupMessageText);
-      setGroupMessageText('');
+      await sendGroupMessage(selectedGroupId, profile, messageText);
     } catch (error) {
       console.error('Send group message error:', error);
+      setGroupMessageText(messageText);
       showToast('Failed to send message.', 'error');
     } finally {
       setIsGroupSending(false);
@@ -281,14 +283,16 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
 
   const handleSend = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!profile || !selectedRoom || !messageText.trim() || isSending) return;
+    const nextMessageText = messageText.trim();
+    if (!profile || !selectedRoom || !nextMessageText || isSending) return;
 
+    setMessageText('');
     setIsSending(true);
     try {
-      await sendDiscussionMessage(selectedRoom.id, profile, messageText);
-      setMessageText('');
+      await sendDiscussionMessage(selectedRoom.id, profile, nextMessageText);
     } catch (error) {
       console.error('Send discussion message error:', error);
+      setMessageText(nextMessageText);
       showToast('Failed to send message.', 'error');
     } finally {
       setIsSending(false);
@@ -563,7 +567,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                           </div>
                         </header>
 
-                        <div ref={discussionMessagesRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5">
+                        <div ref={discussionMessagesRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 py-5">
                           {messagesLoading ? (
                             <div className="flex h-full items-center justify-center text-sm font-semibold text-gray-400">
                               Loading messages...
@@ -579,19 +583,21 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                               {messages.map((message) => {
                                 const isMe = message.senderId === currentUserUid;
                                 return (
-                                  <div key={message.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`flex max-w-[78%] flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                  <div key={message.id} className={`flex min-w-0 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`flex max-w-[78%] min-w-0 flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                                       {!isMe && (
                                         <span className="mb-1 px-1 text-[11px] font-bold text-gray-500">
                                           {message.senderName}
                                         </span>
                                       )}
                                       <div
-                                        className={`rounded-3xl px-4 py-2 text-sm leading-6 ${
+                                        className={`max-w-full min-w-0 overflow-hidden rounded-3xl px-4 py-2 text-sm leading-6 ${
                                           isMe ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-900'
                                         }`}
                                       >
-                                        <p className="break-words whitespace-pre-wrap">{message.text}</p>
+                                        <p className="max-w-full break-words whitespace-pre-wrap [overflow-wrap:anywhere] [word-break:break-word]">
+                                          {message.text}
+                                        </p>
                                       </div>
                                       <span className="mt-1 px-1 text-[10px] font-medium text-gray-400">
                                         {formatTime(message.timestamp)}
@@ -686,7 +692,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                           </button>
                         </header>
 
-                        <div ref={groupMessagesRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5">
+                        <div ref={groupMessagesRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 py-5">
                           {groupMessagesLoading ? (
                             <div className="flex h-full items-center justify-center text-sm font-semibold text-gray-400">
                               Loading messages...
@@ -702,19 +708,21 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
                               {groupMessages.map((message) => {
                                 const isMe = message.senderId === currentUserUid;
                                 return (
-                                  <div key={message.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`flex max-w-[78%] flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                  <div key={message.id} className={`flex min-w-0 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`flex max-w-[78%] min-w-0 flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                                       {!isMe && (
                                         <span className="mb-1 px-1 text-[11px] font-bold text-gray-500">
                                           {message.senderName}
                                         </span>
                                       )}
                                       <div
-                                        className={`rounded-3xl px-4 py-2 text-sm leading-6 ${
+                                        className={`max-w-full min-w-0 overflow-hidden rounded-3xl px-4 py-2 text-sm leading-6 ${
                                           isMe ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-900'
                                         }`}
                                       >
-                                        <p className="break-words whitespace-pre-wrap">{message.text}</p>
+                                        <p className="max-w-full break-words whitespace-pre-wrap [overflow-wrap:anywhere] [word-break:break-word]">
+                                          {message.text}
+                                        </p>
                                       </div>
                                       <span className="mt-1 px-1 text-[10px] font-medium text-gray-400">
                                         {formatTime(message.timestamp)}

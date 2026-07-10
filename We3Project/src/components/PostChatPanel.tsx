@@ -90,8 +90,9 @@ const PostChatPanel: React.FC<PostChatPanelProps> = ({ post, onClose }) => {
     e.preventDefault();
     if (!isAuthorized || !inputText.trim() || isSending) return;
 
-    setIsSending(true);
     const textToSend = inputText.trim();
+    setInputText('');
+    setIsSending(true);
 
     try {
       await addDoc(collection(db, 'posts', chatId, 'messages'), {
@@ -101,9 +102,9 @@ const PostChatPanel: React.FC<PostChatPanelProps> = ({ post, onClose }) => {
         text: textToSend,
         timestamp: serverTimestamp()
       });
-      setInputText('');
     } catch (e) {
       console.error("Error sending message:", e);
+      setInputText(textToSend);
     } finally {
       setIsSending(false);
     }
@@ -181,7 +182,7 @@ const PostChatPanel: React.FC<PostChatPanelProps> = ({ post, onClose }) => {
         </div>
 
         {/* Main Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4">
           {!isAuthorized ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
               <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
@@ -214,7 +215,7 @@ const PostChatPanel: React.FC<PostChatPanelProps> = ({ post, onClose }) => {
                 return (
                   <div 
                     key={msg.id} 
-                    className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                    className={`flex min-w-0 flex-col ${isMe ? 'items-end' : 'items-start'}`}
                   >
                     <div className="flex items-center gap-1.5 mb-1 px-1">
                       <span className="text-[11px] font-bold text-gray-700">
@@ -224,13 +225,15 @@ const PostChatPanel: React.FC<PostChatPanelProps> = ({ post, onClose }) => {
                     </div>
 
                     <div 
-                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-normal shadow-sm ${
+                      className={`max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 py-2.5 text-sm leading-normal shadow-sm ${
                         isMe 
                           ? 'bg-emerald-600 text-white rounded-tr-none' 
                           : 'bg-slate-100 text-gray-800 rounded-tl-none'
                       }`}
                     >
-                      <p className="whitespace-pre-wrap break-words">{msg.text}</p>
+                      <p className="max-w-full whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">
+                        {msg.text}
+                      </p>
                     </div>
 
                     <span className="text-[9px] text-gray-400 font-medium mt-1 px-1">
