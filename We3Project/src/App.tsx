@@ -11,6 +11,10 @@ import SponsorPage from './components/SponsorPage';
 import AdminPanel from './components/AdminPanel';
 import MessagesPage from './components/MessagesPage';
 import JoinGroupPage from './components/JoinGroupPage';
+import Blog from './components/Blog';
+import News from './components/News';
+import Article from './components/Article';
+import About from './components/About';
 import { useEffect } from 'react';
 
 function App() {
@@ -67,9 +71,10 @@ function App() {
             </div>
           } />
           <Route path="/volunteer" element={<div className="pt-24 pb-20 container mx-auto px-4"><VolunteerForm /></div>} />
-          <Route path="/about" element={<div className="pt-32 pb-20 container mx-auto px-4"><h1 className="text-4xl font-black">About Us</h1><p className="mt-4 text-slate-600">FreeHunger is a community-driven platform...</p></div>} />
-          <Route path="/news" element={<div className="pt-32 pb-20 container mx-auto px-4"><h1 className="text-4xl font-black">Latest News</h1><p className="mt-4 text-slate-600">Stay updated with our impact stories...</p></div>} />
-          <Route path="/blog" element={<div className="pt-32 pb-20 container mx-auto px-4"><h1 className="text-4xl font-black">Blog</h1><p className="mt-4 text-slate-600">Read our latest articles on social change...</p></div>} />
+          <Route path="/about" element={<About />} />
+          <Route path="/news" element={<News />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<Article />} />
           <Route path="/sponsor" element={<SponsorPage />} />
           {/* Fallback */}
           <Route path="*" element={<Home />} />

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News & Updates | FreeHunger NGO</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="news.css">
+</head>
+
+<body>
+
+    <!-- ===================== NAVBAR PLACEHOLDER ===================== -->
+    <div id="nav-placeholder"></div>
+
+    <!-- ===================== HERO NEWS CAROUSEL ===================== -->
+    <section class="hero-carousel-section">
+        <div id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel" data-bs-interval="6000">
+
+            <!-- Indicators -->
+            <div class="carousel-indicators">
+                <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"
+                    aria-current="true" aria-label="Slide 1"></button>
+                <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+                <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+            </div>
+
+            <div class="carousel-inner">
+
+                <!-- Slide 1 -->
+                <div class="carousel-item active">
+                    <div class="hero-slide-img"
+                        style="background-image:url('https://s.yimg.com/ny/api/res/1.2/Uc09QF2Db9bppaeLQsNZwg--/YXBwaWQ9aGlnaGxhbmRlcjt3PTEyNDI7aD02OTk7Y2Y9d2VicA--/https://media.zenfs.com/en/cnn_articles_875/d03bdc5700e3a6eee7bd68c8d63e7638');">
+                    </div>
+                    <div class="hero-overlay"></div>
+                    <div class="container">
+                        <div class="carousel-caption-custom">
+                            <span class="badge news-badge bg-danger">Emergency Relief</span>
+                            <h1 class="hero-title">FreeHunger Delivers 10,000 Meals to Flood-Affected Families in Sindh
+                            </h1>
+                            <p class="hero-desc">Our rapid response teams mobilized within 24 hours to provide emergency
+                                food packages and clean drinking water to over 2,000 displaced families across flood-hit
+                                villages.</p>
+                            <div class="hero-meta">
+                                <span><i class="bi bi-calendar3"></i> July 8, 2026</span>
+                                <span><i class="bi bi-geo-alt"></i> Sindh, Pakistan</span>
+                            </div>
+                            <a href="#" class="btn btn-hero mt-3">Read More <i class="bi bi-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 2 -->
+                <div class="carousel-item">
+                    <div class="hero-slide-img"
+                        style="background-image:url('https://avatars.mds.yandex.net/i?id=289c960f848b80ecdda2b64d2bb2b42176432134-12471273-images-thumbs&n=13');">
+                    </div>
+                    <div class="hero-overlay"></div>
+                    <div class="container">
+                        <div class="carousel-caption-custom">
+                            <span class="badge news-badge bg-success">Volunteers</span>
+                            <h1 class="hero-title">2,500+ Volunteers Join FreeHunger's Biggest Ramadan Food Drive</h1>
+                            <p class="hero-desc">Thousands of dedicated volunteers came together this month to pack and
+                                distribute food rations to underprivileged communities in 30 cities nationwide.</p>
+                            <div class="hero-meta">
+                                <span><i class="bi bi-calendar3"></i> July 5, 2026</span>
+                                <span><i class="bi bi-geo-alt"></i> Nationwide</span>
+                            </div>
+                            <a href="#" class="btn btn-hero mt-3">Read More <i class="bi bi-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 3 -->
+                <div class="carousel-item">
+                    <div class="hero-slide-img"
+                        style="background-image:url('https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1600&q=80');">
+                    </div>
+                    <div class="hero-overlay"></div>
+                    <div class="container">
+                        <div class="carousel-caption-custom">
+                            <span class="badge news-badge bg-primary">Education</span>
+                            <h1 class="hero-title">New Community Learning Center Opens for 500 Underprivileged Children
+                            </h1>
+                            <p class="hero-desc">FreeHunger partners with local educators to launch a free learning
+                                center offering meals, books, and mentorship to children in need.</p>
+                            <div class="hero-meta">
+                                <span><i class="bi bi-calendar3"></i> July 1, 2026</span>
+                                <span><i class="bi bi-geo-alt"></i> Lahore, Pakistan</span>
+                            </div>
+                            <a href="#" class="btn btn-hero mt-3">Read More <i class="bi bi-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+                <span class="carousel-control-icon"><i class="bi bi-chevron-left"></i></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+                <span class="carousel-control-icon"><i class="bi bi-chevron-right"></i></span>
+            </button>
+        </div>
+    </section>
+
+    <!-- ===================== BREAKING NEWS TICKER ===================== -->
+    <div class="breaking-news-bar">
+        <div class="d-flex align-items-stretch">
+            <div class="breaking-label">
+                <i class="bi bi-broadcast"></i> Breaking News
+            </div>
+            <div class="ticker-wrap">
+                <div class="ticker-move">
+                    <span>🍲 FreeHunger crosses 10,000+ meals served milestone this month</span>
+                    <span>💧 Clean water project launched in 12 new villages</span>
+                    <span>🎒 500 school kits distributed to flood-affected children</span>
+                    <span>🤝 150 NGO partners now collaborating with FreeHunger nationwide</span>
+                    <span>❤️ Ramadan donation drive raises record-breaking funds</span>
+                    <span>🏥 Free medical camps held in 8 underserved communities</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== NEWS HEADER ===================== -->
+    <section class="news-header-section">
+        <div class="container text-center">
+            <span class="section-tag">Newsroom</span>
+            <h2 class="news-header-title">Latest News & Updates</h2>
+            <p class="news-header-subtitle">Stay informed with our latest food rescue missions, volunteer activities,
+                donation campaigns and community impact stories.</p>
+        </div>
+    </section>
+
+    <!-- ===================== MAIN CONTENT (FEATURED + GRID + SIDEBAR) ===================== -->
+    <section class="main-content-section">
+        <div class="container">
+            <div class="row g-5">
+
+                <!-- LEFT COLUMN: FEATURED + GRID -->
+                <div class="col-lg-8">
+
+                    <!-- FEATURED NEWS -->
+                    <div class="featured-news-card mb-5">
+                        <div class="row g-0">
+                            <div class="col-md-6 featured-img-wrap">
+                                <img src="https://images.unsplash.com/photo-1560252829-804f1aedf1be?auto=format&fit=crop&w=900&q=80"
+                                    alt="Volunteers packing food boxes" class="featured-img">
+                                <span class="badge news-badge bg-success position-badge">Food Drive</span>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="featured-content">
+                                    <h3 class="featured-title">FreeHunger Launches Nationwide Winter Food Rescue
+                                        Campaign</h3>
+                                    <p class="featured-desc">This winter, FreeHunger is scaling up operations to rescue
+                                        surplus food from restaurants, weddings, and events, redistributing it to
+                                        families in need before it goes to waste. The campaign aims to serve over 50,000
+                                        meals across 15 cities in the next three months.</p>
+                                    <div class="featured-meta">
+                                        <span><i class="bi bi-calendar3"></i> July 10, 2026</span>
+                                        <span><i class="bi bi-person"></i> Ayesha Khan</span>
+                                        <span><i class="bi bi-geo-alt"></i> Karachi, Pakistan</span>
+                                    </div>
+                                    <a href="#" class="btn btn-outline-news mt-3">Read More <i
+                                            class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- LATEST NEWS GRID -->
+                    <div class="row g-4">
+
+                        <!-- Card 1 -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="news-card h-100">
+                                <div class="news-card-img-wrap">
+                                    <img src="https://images.unsplash.com/photo-1591189863430-ab87e120f312?auto=format&fit=crop&w=600&q=80"
+                                        alt="Food packages ready for distribution">
+                                    <span class="badge news-badge bg-success">Food Drive</span>
+                                </div>
+                                <div class="news-card-body">
+                                    <h5 class="news-card-title">Weekly Food Packages Reach 3,000 Households in Rural
+                                        Punjab</h5>
+                                    <p class="news-card-desc">Our mobile distribution units continue to bring essential
+                                        groceries to remote villages every week.</p>
+                                    <div class="news-card-meta">
+                                        <span><i class="bi bi-calendar3"></i> July 9, 2026</span>
+                                        <span><i class="bi bi-geo-alt"></i> Punjab</span>
+                                    </div>
+                                    <a href="#" class="read-more-link">Read More <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2 -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="news-card h-100">
+                                <div class="news-card-img-wrap">
+                                    <img src="https://static01.nyt.com/images/2014/09/09/world/asia/20140910-FLOOD-slide-TAXM/20140910-FLOOD-slide-TAXM-superJumbo.jpg"
+                                        alt="Emergency relief supplies">
+                                    <span class="badge news-badge bg-danger">Emergency</span>
+                                </div>
+                                <div class="news-card-body">
+                                    <h5 class="news-card-title">Emergency Response Team Deployed After Heavy Monsoon
+                                        Flooding</h5>
+                                    <p class="news-card-desc">Rapid relief teams delivered food, tents and medical aid
+                                        to affected families within hours.</p>
+                                    <div class="news-card-meta">
+                                        <span><i class="bi bi-calendar3"></i> July 8, 2026</span>
+                                        <span><i class="bi bi-geo-alt"></i> Sindh</span>
+                                    </div>
+                                    <a href="#" class="read-more-link">Read More <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 3 -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="news-card h-100">
+                                <div class="news-card-img-wrap">
+                                    <img src="https://i.pinimg.com/736x/9d/a7/94/9da794994ad2b0befe621e092dd4a7f5.jpg"
+                                        alt="Children learning in classroom">
+                                    <span class="badge news-badge bg-primary">Education</span>
+                                </div>
+                                <div class="news-card-body">
+                                    <h5 class="news-card-title">Free Learning Center Welcomes 500 Children in Lahore
+                                    </h5>
+                                    <p class="news-card-desc">The new center offers free meals, books and mentorship to
+                                        underprivileged students.</p>
+                                    <div class="news-card-meta">
+                                        <span><i class="bi bi-calendar3"></i> July 7, 2026</span>
+                                        <span><i class="bi bi-geo-alt"></i> Lahore</span>
+                                    </div>
+                                    <a href="#" class="read-more-link">Read More <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 4 -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="news-card h-100">
+                                <div class="news-card-img-wrap">
+                                    <img src="https://avatars.mds.yandex.net/i?id=94994a2b30cecf66b12d7d2c2deda19df328df6c-10695851-images-thumbs&n=13"
+                                        alt="Clean water well project">
+                                    <span class="badge news-badge bg-info text-dark">Water</span>
+                                </div>
+                                <div class="news-card-body">
+                                    <h5 class="news-card-title">12 New Water Filtration Points Installed Across Villages
+                                    </h5>
+                                    <p class="news-card-desc">Clean drinking water is now accessible to over 8,000
+                                        residents in previously underserved areas.</p>
+                                    <div class="news-card-meta">
+                                        <span><i class="bi bi-calendar3"></i> July 6, 2026</span>
+                                        <span><i class="bi bi-geo-alt"></i> Balochistan</span>
+                                    </div>
+                                    <a href="#" class="read-more-link">Read More <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 5 -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="news-card h-100">
+                                <div class="news-card-img-wrap">
+                                    <img src="https://avatars.mds.yandex.net/i?id=8c973ccc8a4729f259c1a48507f9c884232750d2-4236143-images-thumbs&n=13"
+                                        alt="Community gathering event">
+                                    <span class="badge news-badge bg-warning text-dark">Community</span>
+                                </div>
+                                <div class="news-card-body">
+                                    <h5 class="news-card-title">Community Kitchen Opens Its Doors in Karachi's Old City
+                                    </h5>
+                                    <p class="news-card-desc">A new community kitchen now serves warm meals daily to
+                                        over 400 residents in need.</p>
+                                    <div class="news-card-meta">
+                                        <span><i class="bi bi-calendar3"></i> July 5, 2026</span>
+                                        <span><i class="bi bi-geo-alt"></i> Karachi</span>
+                                    </div>
+                                    <a href="#" class="read-more-link">Read More <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 6 -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="news-card h-100">
+                                <div class="news-card-img-wrap">
+                                    <img src="https://avatars.mds.yandex.net/i?id=3d5c70c49331e6c098e73ee007bc11748ee3c206-4054461-images-thumbs&n=13"
+                                        alt="Volunteers teamwork">
+                                    <span class="badge news-badge bg-success">Volunteers</span>
+                                </div>
+                                <div class="news-card-body">
+                                    <h5 class="news-card-title">Meet the Volunteers Behind Our Biggest Food Drive Yet
+                                    </h5>
+                                    <p class="news-card-desc">Hear the inspiring stories of everyday heroes dedicating
+                                        their weekends to feeding communities.</p>
+                                    <div class="news-card-meta">
+                                        <span><i class="bi bi-calendar3"></i> July 4, 2026</span>
+                                        <span><i class="bi bi-geo-alt"></i> Islamabad</span>
+                                    </div>
+                                    <a href="#" class="read-more-link">Read More <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 7 -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="news-card h-100">
+                                <div class="news-card-img-wrap">
+                                    <img src="https://indusscrolls.com/wp-content/uploads/2020/04/ca_0410NID_Doctors_Coronavirus_India_online-1.jpg"
+                                        alt="Free medical health camp">
+                                    <span class="badge news-badge bg-danger">Health</span>
+                                </div>
+                                <div class="news-card-body">
+                                    <h5 class="news-card-title">Free Medical Camps Provide Checkups to 1,200 Patients
+                                    </h5>
+                                    <p class="news-card-desc">Our health outreach program continues to bring essential
+                                        care to underserved neighborhoods.</p>
+                                    <div class="news-card-meta">
+                                        <span><i class="bi bi-calendar3"></i> July 3, 2026</span>
+                                        <span><i class="bi bi-geo-alt"></i> Multan</span>
+                                    </div>
+                                    <a href="#" class="read-more-link">Read More <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 8 -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="news-card h-100">
+                                <div class="news-card-img-wrap">
+                                    <img src="https://images.unsplash.com/photo-1594708767771-a7502209ff51?auto=format&fit=crop&w=600&q=80"
+                                        alt="Donation box hands giving">
+                                    <span class="badge news-badge bg-secondary">Donation</span>
+                                </div>
+                                <div class="news-card-body">
+                                    <h5 class="news-card-title">Ramadan Donation Drive Raises Record-Breaking Funds</h5>
+                                    <p class="news-card-desc">Generous donors helped us exceed our fundraising goal,
+                                        enabling more meals for families in need.</p>
+                                    <div class="news-card-meta">
+                                        <span><i class="bi bi-calendar3"></i> July 2, 2026</span>
+                                        <span><i class="bi bi-geo-alt"></i> Nationwide</span>
+                                    </div>
+                                    <a href="#" class="read-more-link">Read More <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 9 -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="news-card h-100">
+                                <div class="news-card-img-wrap">
+                                    <img src="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=600&q=80"
+                                        alt="Smiling child success story">
+                                    <span class="badge news-badge bg-success">Success Story</span>
+                                </div>
+                                <div class="news-card-body">
+                                    <h5 class="news-card-title">From Hunger to Hope: Amina's Journey with FreeHunger
+                                    </h5>
+                                    <p class="news-card-desc">A heartwarming story of resilience, community support, and
+                                        a fresh start for a family in need.</p>
+                                    <div class="news-card-meta">
+                                        <span><i class="bi bi-calendar3"></i> July 1, 2026</span>
+                                        <span><i class="bi bi-geo-alt"></i> Peshawar</span>
+                                    </div>
+                                    <a href="#" class="read-more-link">Read More <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- /row grid -->
+
+                    <!-- Pagination -->
+                    <nav class="mt-5" aria-label="News pagination">
+                        <ul class="pagination justify-content-center news-pagination">
+                            <li class="page-item disabled"><a class="page-link" href="#"><i
+                                        class="bi bi-chevron-left"></i></a></li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a>
+                            </li>
+                        </ul>
+                    </nav>
+
+                </div><!-- /col-lg-8 -->
+
+                <!-- RIGHT COLUMN: SIDEBAR -->
+                <div class="col-lg-4">
+                    <div class="sidebar-sticky">
+
+                        <!-- Latest Updates -->
+                        <div class="sidebar-widget">
+                            <h5 class="widget-title"><i class="bi bi-lightning-charge-fill"></i> Latest Updates</h5>
+                            <ul class="latest-updates-list">
+                                <li>
+                                    <span class="dot"></span>
+                                    <div>
+                                        <a href="#">New volunteer registration portal now live</a>
+                                        <small>2 hours ago</small>
+                                    </div>
+                                </li>
+                                <li>
+                                    <span class="dot"></span>
+                                    <div>
+                                        <a href="#">Monthly donation report published</a>
+                                        <small>5 hours ago</small>
+                                    </div>
+                                </li>
+                                <li>
+                                    <span class="dot"></span>
+                                    <div>
+                                        <a href="#">Partnership announced with City Bakery</a>
+                                        <small>1 day ago</small>
+                                    </div>
+                                </li>
+                                <li>
+                                    <span class="dot"></span>
+                                    <div>
+                                        <a href="#">Winter clothing drive begins next week</a>
+                                        <small>2 days ago</small>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Popular Categories -->
+                        <div class="sidebar-widget">
+                            <h5 class="widget-title"><i class="bi bi-tags-fill"></i> Popular Categories</h5>
+                            <ul class="category-list">
+                                <li><a href="#">Food Drive <span>24</span></a></li>
+                                <li><a href="#">Emergency <span>12</span></a></li>
+                                <li><a href="#">Education <span>18</span></a></li>
+                                <li><a href="#">Water <span>9</span></a></li>
+                                <li><a href="#">Community <span>15</span></a></li>
+                                <li><a href="#">Volunteers <span>21</span></a></li>
+                                <li><a href="#">Health <span>7</span></a></li>
+                                <li><a href="#">Donation <span>30</span></a></li>
+                            </ul>
+                        </div>
+
+                        <!-- Recent Posts -->
+                        <div class="sidebar-widget">
+                            <h5 class="widget-title"><i class="bi bi-clock-history"></i> Recent Posts</h5>
+                            <div class="recent-post-item">
+                                <img src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=150&q=80"
+                                    alt="Recent post">
+                                <div>
+                                    <a href="#">Charity Gala Raises Funds for New Kitchen</a>
+                                    <small><i class="bi bi-calendar3"></i> June 28, 2026</small>
+                                </div>
+                            </div>
+                            <div class="recent-post-item">
+                                <img src="https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=150&q=80"
+                                    alt="Recent post">
+                                <div>
+                                    <a href="#">Children's Summer Camp a Huge Success</a>
+                                    <small><i class="bi bi-calendar3"></i> June 24, 2026</small>
+                                </div>
+                            </div>
+                            <div class="recent-post-item">
+                                <img src="https://images.unsplash.com/photo-1607748862156-7c548e7e98f4?auto=format&fit=crop&w=150&q=80"
+                                    alt="Recent post">
+                                <div>
+                                    <a href="#">New Partnership Expands Reach to 5 Cities</a>
+                                    <small><i class="bi bi-calendar3"></i> June 20, 2026</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Statistics -->
+                        <div class="sidebar-widget stats-widget">
+                            <h5 class="widget-title text-white"><i class="bi bi-bar-chart-fill"></i> Quick Statistics
+                            </h5>
+                            <div class="stat-item">
+                                <i class="bi bi-egg-fried"></i>
+                                <div>
+                                    <h4>10,000+</h4>
+                                    <p>Meals Served</p>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <i class="bi bi-people-fill"></i>
+                                <div>
+                                    <h4>2,500</h4>
+                                    <p>Volunteers</p>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <i class="bi bi-diagram-3-fill"></i>
+                                <div>
+                                    <h4>150</h4>
+                                    <p>NGO Partners</p>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <i class="bi bi-geo-alt-fill"></i>
+                                <div>
+                                    <h4>30</h4>
+                                    <p>Cities Reached</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- /sidebar-sticky -->
+                </div><!-- /col-lg-4 -->
+
+            </div><!-- /row -->
+        </div><!-- /container -->
+    </section>
+
+    <!-- ===================== NEWSLETTER SECTION ===================== -->
+    <section class="newsletter-section">
+        <div class="container">
+            <div class="row justify-content-center text-center">
+                <div class="col-lg-7">
+                    <i class="bi bi-envelope-heart newsletter-icon"></i>
+                    <h2 class="newsletter-title">Stay Updated</h2>
+                    <p class="newsletter-text">Subscribe to our newsletter and get the latest food rescue missions,
+                        volunteer opportunities and community impact stories delivered straight to your inbox.</p>
+                    <form class="newsletter-form">
+                        <div class="input-group">
+                            <input type="email" class="form-control" placeholder="Enter your email address"
+                                aria-label="Email address" required>
+                            <button class="btn btn-subscribe" type="submit">Subscribe <i
+                                    class="bi bi-send-fill"></i></button>
+                        </div>
+                    </form>
+                    <p class="newsletter-note"><i class="bi bi-shield-check"></i> We respect your privacy. Unsubscribe
+                        anytime.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== FOOTER PLACEHOLDER ===================== -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>

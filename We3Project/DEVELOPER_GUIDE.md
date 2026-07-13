@@ -1,5 +1,21 @@
 # Developer Guide - Volunteer & Role Management
 
+## Static Content Pages
+The static marketing/content pages are imported as raw HTML and rendered through React wrappers:
+
+* `src/content/news.html` with `src/styles/news.css`
+* `src/content/blog.html` with `src/styles/blog.css`
+* `src/content/article1.html` through `src/content/article6.html` with `src/styles/article.css`
+
+Typography should stay consistent across these pages. Blog, Article, and News pages use the `Inter` font family and page-scoped heading rules.
+
+Recent styling fixes:
+
+* News carousel hero text is forced to white with `.news-page .hero-carousel-section` scoped selectors so the global News heading rule does not turn the hero title black.
+* Blog hero eyebrow, title, and subtitle are forced to white only inside `.blog-page .blog-hero`; lower Blog sections keep their normal colors.
+* Article hero titles in `article1` through `article6` are forced to white with `.article-page .article-hero .article-hero-title`; related article cards and other lower sections remain unchanged.
+* Blog article card titles intentionally remain black/default on the Blog listing page.
+
 ## Volunteer Approval Logic
 The volunteer approval process is managed in `src/components/AdminPanel.tsx`.
 
