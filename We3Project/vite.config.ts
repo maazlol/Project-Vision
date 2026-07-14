@@ -6,7 +6,7 @@ export default defineConfig({
   base: '/Project-Vision/',
   plugins: [react()],
   build: {
-    outDir: 'dist',
+    outDir: '../docs',
     emptyOutDir: true,
   },
 })

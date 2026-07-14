@@ -35,31 +35,13 @@ export const useUserRole = () => {
         // Use onSnapshot for real-time updates if the user's role or verification changes
         const docRef = doc(db, 'users', user.uid);
         const unsubscribeDoc = onSnapshot(docRef, (docSnap) => {
-          let role: UserRole = 'supporter';
           let userData: any = {};
 
           if (docSnap.exists()) {
             userData = docSnap.data();
-            role = userData.role as UserRole;
-            
-            // If the user has registered as a volunteer but role isn't set, treat as volunteer
-            if (!role && userData.isVolunteer) {
-              role = 'volunteer';
-            }
           }
 
-          // Admin/Volunteer Quick Access Logic (Overrides Firestore role for dev/testing)
-          const emailLower = (userData.email || user.email || '').toLowerCase();
-          const nameLower = (userData.name || user.displayName || '').toLowerCase();
-          
-          if (
-            emailLower === 'maazology@gmail.com' || 
-            emailLower === 'maazstepback@gmail.com'
-          ) {
-            role = 'admin';
-          } else if (nameLower.includes('blah') || emailLower.includes('blah')) {
-            role = 'volunteer';
-          }
+          const role = (userData.role as UserRole | undefined) || 'supporter';
 
           if (docSnap.exists()) {
             setProfile({
@@ -72,7 +54,7 @@ export const useUserRole = () => {
               isVolunteer: userData.isVolunteer || false,
               isVerified: userData.isVerified || false,
               ...userData,
-              role: role // Role must be last to ensure it takes precedence
+              role
             } as UserProfile);
           } else {
             // Default profile for new users

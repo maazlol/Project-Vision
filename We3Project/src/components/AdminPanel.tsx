@@ -101,7 +101,7 @@ export default function AdminPanel() {
         if (activeTab === 'sponsors') setSponsors(data as Sponsor[]);
         else if (activeTab === 'volunteers') setVolunteers(data as Volunteer[]);
         else if (activeTab === 'activeVolunteers') {
-          setActiveVolunteers((data as ActiveVolunteer[]).filter((user) => user.role === 'volunteer' || user.isVolunteer === true));
+          setActiveVolunteers((data as ActiveVolunteer[]).filter((user) => user.role === 'volunteer'));
         }
         else if (activeTab === 'viewToHelp') setViewToHelp(data as ViewToHelpItem[]);
         else if (activeTab === 'logistics') setLogistics(data as LogisticsItem[]);

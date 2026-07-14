@@ -126,6 +126,7 @@ export default function Login() {
         email: user.email,
         username: finalUsername.toLowerCase(),
         name: user.displayName || finalUsername,
+        role: 'supporter',
         credits: 0,
         joinedAt: serverTimestamp(),
         avatarType: 'emoji',

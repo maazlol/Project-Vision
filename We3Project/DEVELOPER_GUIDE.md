@@ -38,7 +38,7 @@ Important role-management rules:
 * Normal users can create their own profile, but cannot grant themselves `role`, `isVolunteer`, or `isVerified`.
 * Normal users can submit a pending document in `volunteers`.
 * Only admins can update volunteer applications after submission.
-* Discussion and volunteer-only group access checks read `users/{uid}.role` and `users/{uid}.isVolunteer`.
+* Discussion and volunteer-only group access checks read `users/{uid}.role`.
 
 Deploy rules after changing the admin permission flow:
 
@@ -47,15 +47,7 @@ firebase deploy --only firestore:rules
 ```
 
 ## Admin Access
-Administrative access is managed in both `src/lib/useUserRole.ts` and `firestore.rules`.
+Administrative access is managed through `users/{uid}.role`.
 
-### Hardcoded Admins
-The following emails are currently granted administrative privileges regardless of their Firestore role:
-
-* `maazology@gmail.com`
-* `maazstepback@gmail.com`
-
-The same emails are recognized in `firestore.rules` so the admin panel can update roles even if the user document is missing or stale.
-
-### Role Precedence
-In the `useUserRole` hook, the calculated role from email overrides takes precedence over the Firestore document role to ensure development access is not locked out.
+### Role Source
+`users/{uid}.role` is the single source of truth for application and Firestore security roles. Admin access requires `role: admin`; volunteer access requires `role: volunteer`; NGO access requires `role: ngo`.

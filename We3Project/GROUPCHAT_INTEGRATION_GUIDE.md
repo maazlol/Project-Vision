@@ -50,7 +50,7 @@ The group-chat rules in `firestore.rules` enforce:
 
 - signed-in users only
 - creator must be the first member and first admin
-- volunteer-only groups require `users/{uid}.role` to be `volunteer`, `ngo`, or `admin`, or `users/{uid}.isVolunteer == true`
+- volunteer-only groups require `users/{uid}.role` to be `volunteer`, `ngo`, or `admin`
 - group admins can edit group settings and manage members
 - members can send messages, join allowed groups, and leave groups
 

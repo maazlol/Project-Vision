@@ -9,21 +9,13 @@ service cloud.firestore {
     function hasPrivilegedDiscussionRole() {
       return signedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['volunteer', 'ngo', 'admin']
-          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isVolunteer == true
-        );
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['volunteer', 'ngo', 'admin'];
     }
 
     function isAdmin() {
       return signedIn()
-        && (
-          request.auth.token.email in ['maazology@gmail.com', 'maazstepback@gmail.com']
-          || (
-            exists(/databases/$(database)/documents/users/$(request.auth.uid))
-            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-          )
-        );
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     function isOwner(userId) {
@@ -40,6 +32,15 @@ service cloud.firestore {
         'volunteerRejectedAt',
         'volunteerRevokedAt'
       ]);
+    }
+
+    function isSafeUserProfileCreate(userId) {
+      return isOwner(userId)
+        && !request.resource.data.keys().hasAny(['isVolunteer', 'isVerified'])
+        && (
+          !request.resource.data.keys().hasAny(['role'])
+          || request.resource.data.role == 'supporter'
+        );
     }
 
     function canUseAudience(audience) {
@@ -62,11 +63,7 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if signedIn();
-      allow create: if isAdmin()
-        || (
-          isOwner(userId)
-          && !request.resource.data.keys().hasAny(['role', 'isVolunteer', 'isVerified'])
-        );
+      allow create: if isAdmin() || isSafeUserProfileCreate(userId);
       allow update: if isAdmin() || (isOwner(userId) && isNotChangingRoleFields());
       allow delete: if isAdmin();
     }
