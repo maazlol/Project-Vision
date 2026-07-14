@@ -6753,7 +6753,7 @@ Content-Type: `+m.contentType+`\r
                 <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">\r
                     <div class="card h-100 p-4 stat-card shadow-sm" style="border-top-color: var(--primary-color);">\r
                         <div class="card-body">\r
-                                <div class="bg-light text-primary-custom rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
+                                <div class="bg-light text-primary-custom rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">\r
                                 <i class="fa-solid fa-truck-ramp-box fs-2" style="color: var(--primary-color);"></i>\r
                             </div>\r
                             <h4 class="fw-bold mb-3">2. Smart Logistics</h4>\r
@@ -6807,7 +6807,7 @@ Content-Type: `+m.contentType+`\r
                 <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">\r
                     <div class="card team-card shadow-sm bg-light">\r
                         <div class="team-img-wrapper">\r
-                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=500&auto=format&fit=crop" class="card-img-top" alt="Founder">\r
+                            <img src="https://i.pinimg.com/736x/f5/61/00/f5610035f03f3a47c0e6ccbec81a71ec.jpg" class="card-img-top" alt="Founder">\r
                         </div>\r
                         <div class="card-body text-center p-4">\r
                             <h5 class="fw-bold mb-1">Adan</h5>\r
@@ -6825,7 +6825,7 @@ Content-Type: `+m.contentType+`\r
                 <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">\r
                     <div class="card team-card shadow-sm bg-light">\r
                         <div class="team-img-wrapper">\r
-                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=500&auto=format&fit=crop" class="card-img-top" alt="Lead Developer">\r
+                            <img src="https://i.pinimg.com/1200x/e2/ac/3f/e2ac3f0ddbb678f224fc89fa90fcff27.jpg" class="card-img-top" alt="Lead Developer">\r
                         </div>\r
                         <div class="card-body text-center p-4">\r
                             <h5 class="fw-bold mb-1">Maaz</h5>\r
@@ -6843,7 +6843,7 @@ Content-Type: `+m.contentType+`\r
                 <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">\r
                     <div class="card team-card shadow-sm bg-light">\r
                         <div class="team-img-wrapper">\r
-                            <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=500&auto=format&fit=crop" class="card-img-top" alt="Operations">\r
+                            <img src="https://i.pinimg.com/1200x/ab/e3/6d/abe36d56c36f9fb17b8dc785901a68c5.jpg" class="card-img-top" alt="Operations">\r
                         </div>\r
                         <div class="card-body text-center p-4">\r
                             <h5 class="fw-bold mb-1">Mahnoor</h5>\r
