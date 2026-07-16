@@ -89,6 +89,51 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // NGO catalog (capital N). Legacy lowercase "ngos" is not used for new data.
+    function isNgoOwner(ngoId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/Ngos/$(ngoId))
+        && get(/databases/$(database)/documents/Ngos/$(ngoId)).data.ownerUid == request.auth.uid;
+    }
+
+    match /Ngos/{ngoId} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      // Admin full update; NGO owner may update profile fields; donors may only bump received
+      allow update: if isAdmin()
+        || (signedIn()
+          && resource.data.ownerUid == request.auth.uid
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['ownerUid', 'verified']))
+        || (signedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['received']));
+    }
+
+    // Shared donation ledger for NGO Portal + Admin review
+    match /donations/{donationId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.donorId == request.auth.uid)
+        || (signedIn() && isNgoOwner(resource.data.ngoId));
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'ngoId', 'ngoName', 'donorName', 'type', 'status', 'source', 'timestamp'
+        ])
+        && request.resource.data.type in ['money', 'food', 'clothes']
+        && request.resource.data.status in [
+          'under_review', 'approved', 'rejected', 'refunded', 'action_required'
+        ]
+        && request.resource.data.source in ['credits', 'individual', 'in_kind'];
+
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId}/donations/{donationId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update, delete: if isAdmin();
+    }
+
     match /verificationRequests/{requestId} {
       allow read: if isAdmin() || isOwner(requestId);
       allow create: if isOwner(requestId);

@@ -29,7 +29,10 @@ const Navbar = () => {
     { name: 'About', path: '/about' },
   ];
 
-  // Only show Admin to admin users
+  // Role-specific portal links
+  if (profile?.role === 'ngo') {
+    navLinks.push({ name: 'NGO', path: '/ngo-portal' });
+  }
   if (profile?.role === 'admin') {
     navLinks.push({ name: 'Admin', path: '/admin' });
   }

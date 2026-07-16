@@ -1,9 +1,30 @@
 import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { collection, getDocs, doc, updateDoc, addDoc, writeBatch, serverTimestamp, query, where } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  addDoc,
+  writeBatch,
+  serverTimestamp,
+  query,
+  where,
+  orderBy,
+  increment,
+  onSnapshot,
+} from 'firebase/firestore';
 import * as Icons from 'lucide-react';
 import { useUserRole } from '../lib/useUserRole';
 import { Link as RouterLink } from 'react-router-dom';
+import {
+  type DonationRecord,
+  type DonationStatus,
+  donationTimestampToDate,
+  formatDonationStatus,
+  statusBadgeClasses,
+} from '../lib/donations';
+import { DemoNgoSeedError, seedDemoNgo } from '../lib/seedDemoNgo';
 
 // --- Interfaces ---
 
@@ -66,7 +87,13 @@ export interface LogisticsItem {
   delivered: boolean;
 }
 
-type TabType = 'sponsors' | 'volunteers' | 'activeVolunteers' | 'viewToHelp' | 'logistics';
+type TabType =
+  | 'sponsors'
+  | 'volunteers'
+  | 'activeVolunteers'
+  | 'viewToHelp'
+  | 'logistics'
+  | 'ngoDonations';
 
 export default function AdminPanel() {
   const { profile, loading: authLoading } = useUserRole();
@@ -83,9 +110,14 @@ export default function AdminPanel() {
   const [activeVolunteers, setActiveVolunteers] = useState<ActiveVolunteer[]>([]);
   const [viewToHelp, setViewToHelp] = useState<ViewToHelpItem[]>([]);
   const [logistics, setLogistics] = useState<LogisticsItem[]>([]);
+  const [ngoDonations, setNgoDonations] = useState<DonationRecord[]>([]);
+  const [selectedDonation, setSelectedDonation] = useState<DonationRecord | null>(null);
+  const [adminNoteDraft, setAdminNoteDraft] = useState('');
+  const [donationActionLoading, setDonationActionLoading] = useState(false);
 
   useEffect(() => {
     if (profile?.role !== 'admin') return;
+    if (activeTab === 'ngoDonations') return;
 
     const fetchData = async () => {
       setIsLoading(true);
@@ -114,6 +146,56 @@ export default function AdminPanel() {
     };
 
     fetchData();
+  }, [activeTab, profile]);
+
+  // Live NGO donations ledger (status changes appear immediately in NGO Portal)
+  useEffect(() => {
+    if (profile?.role !== 'admin' || activeTab !== 'ngoDonations') return;
+
+    setIsLoading(true);
+    setError(null);
+
+    const mapDocs = (docs: { id: string; data: () => Record<string, unknown> }[]) => {
+      const rows = docs.map((d) => ({ id: d.id, ...d.data() } as DonationRecord));
+      rows.sort((a, b) => {
+        const ta = donationTimestampToDate(a.timestamp)?.getTime() || 0;
+        const tb = donationTimestampToDate(b.timestamp)?.getTime() || 0;
+        return tb - ta;
+      });
+      return rows;
+    };
+
+    // Prefer ordered query; fall back if index is missing
+    const ordered = query(collection(db, 'donations'), orderBy('timestamp', 'desc'));
+    let activeUnsub: (() => void) | undefined;
+
+    activeUnsub = onSnapshot(
+      ordered,
+      (snapshot) => {
+        setNgoDonations(
+          snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as DonationRecord))
+        );
+        setIsLoading(false);
+      },
+      () => {
+        activeUnsub?.();
+        activeUnsub = onSnapshot(
+          collection(db, 'donations'),
+          (snapshot) => {
+            setNgoDonations(mapDocs(snapshot.docs));
+            setIsLoading(false);
+            setError(null);
+          },
+          (fallbackErr) => {
+            console.error(fallbackErr);
+            setError('Could not load NGO donations. Confirm firestore.rules are deployed.');
+            setIsLoading(false);
+          }
+        );
+      }
+    );
+
+    return () => activeUnsub?.();
   }, [activeTab, profile]);
 
   const handleAction = async (tab: TabType, id: string, action: string) => {
@@ -244,6 +326,92 @@ export default function AdminPanel() {
     }
   };
 
+  const handleSeedDemoNgo = async () => {
+    setIsLoading(true);
+    try {
+      const result = await seedDemoNgo();
+      alert(result.message);
+    } catch (err) {
+      console.error(err);
+      if (err instanceof DemoNgoSeedError) {
+        alert(
+          `${err.message}\n\nFirebase Console steps:\n${err.consoleSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
+        );
+      } else {
+        alert(err instanceof Error ? err.message : 'Failed to seed demo NGO.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const openDonationReview = (donation: DonationRecord) => {
+    setSelectedDonation(donation);
+    setAdminNoteDraft(donation.adminNote || '');
+  };
+
+  const handleDonationStatusUpdate = async (status: DonationStatus) => {
+    if (!selectedDonation) return;
+    setDonationActionLoading(true);
+    try {
+      const batch = writeBatch(db);
+      const donationRef = doc(db, 'donations', selectedDonation.id);
+      batch.update(donationRef, {
+        status,
+        adminNote: adminNoteDraft.trim(),
+        reviewedAt: serverTimestamp(),
+      });
+
+      // Keep NGO received totals in sync for money donations
+      const wasApproved =
+        selectedDonation.type === 'money' && selectedDonation.status === 'approved';
+      const willApprove = selectedDonation.type === 'money' && status === 'approved';
+      const amount =
+        typeof selectedDonation.amount === 'number' ? selectedDonation.amount : 0;
+
+      if (selectedDonation.ngoId && amount > 0) {
+        const ngoRef = doc(db, 'Ngos', selectedDonation.ngoId);
+        if (!wasApproved && willApprove) {
+          batch.update(ngoRef, { received: increment(amount) });
+        } else if (wasApproved && !willApprove) {
+          batch.update(ngoRef, { received: increment(-amount) });
+        }
+      }
+
+      await batch.commit();
+
+      setSelectedDonation((prev) =>
+        prev ? { ...prev, status, adminNote: adminNoteDraft.trim() } : null
+      );
+      alert(`Donation marked as ${formatDonationStatus(status)}. NGO Portal updates live.`);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update donation status.');
+    } finally {
+      setDonationActionLoading(false);
+    }
+  };
+
+  const handleSaveAdminNoteOnly = async () => {
+    if (!selectedDonation) return;
+    setDonationActionLoading(true);
+    try {
+      await updateDoc(doc(db, 'donations', selectedDonation.id), {
+        adminNote: adminNoteDraft.trim(),
+        reviewedAt: serverTimestamp(),
+      });
+      setSelectedDonation((prev) =>
+        prev ? { ...prev, adminNote: adminNoteDraft.trim() } : null
+      );
+      alert('Admin note saved. Visible on NGO Portal.');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save admin note.');
+    } finally {
+      setDonationActionLoading(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -284,18 +452,19 @@ export default function AdminPanel() {
             <p className="text-slate-500 font-medium">Oversee community operations.</p>
           </div>
           
-          <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-200 w-fit">
+          <div className="flex flex-wrap bg-white p-1 rounded-2xl shadow-sm border border-slate-200 w-fit gap-0.5">
             {[
               { id: 'sponsors', icon: Icons.Heart, label: 'Sponsors' },
               { id: 'volunteers', icon: Icons.Users, label: 'Volunteers' },
               { id: 'activeVolunteers', icon: Icons.UserMinus, label: 'Active' },
+              { id: 'ngoDonations', icon: Icons.HandHeart, label: 'NGO Donations' },
               { id: 'viewToHelp', icon: Icons.BarChart3, label: 'View to Help' },
               { id: 'logistics', icon: Icons.Truck, label: 'Logistics' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
                   activeTab === tab.id ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
                 }`}
               >
@@ -320,11 +489,22 @@ export default function AdminPanel() {
               {activeTab === 'sponsors' && <Icons.Heart size={16} className="text-rose-500"/>}
               {activeTab === 'volunteers' && <Icons.Users size={16} className="text-emerald-500"/>}
               {activeTab === 'activeVolunteers' && <Icons.UserMinus size={16} className="text-teal-500"/>}
+              {activeTab === 'ngoDonations' && <Icons.HandHeart size={16} className="text-emerald-500"/>}
               {activeTab === 'viewToHelp' && <Icons.BarChart3 size={16} className="text-indigo-500"/>}
               {activeTab === 'logistics' && <Icons.Truck size={16} className="text-amber-500"/>}
-              {activeTab === 'activeVolunteers' ? 'ACTIVE VOLUNTEERS' : `${activeTab.toUpperCase()} Records`}
+              {activeTab === 'activeVolunteers'
+                ? 'ACTIVE VOLUNTEERS'
+                : activeTab === 'ngoDonations'
+                  ? 'NGO DONATIONS'
+                  : `${activeTab.toUpperCase()} Records`}
             </h3>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={handleSeedDemoNgo}
+                className="bg-violet-50 text-violet-700 border border-violet-200 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-violet-100 transition-all flex items-center gap-1.5"
+              >
+                <Icons.Building2 size={14} /> Seed Demo NGO
+              </button>
               <button onClick={handleSeedData} className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all flex items-center gap-1.5">
                 <Icons.Zap size={14} /> Seed Data
               </button>
@@ -489,6 +669,80 @@ export default function AdminPanel() {
               </table>
             )}
 
+            {activeTab === 'ngoDonations' && (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/50">
+                    <th className="p-5 text-xs font-bold text-slate-400 uppercase tracking-widest">NGO</th>
+                    <th className="p-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Donor</th>
+                    <th className="p-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Type / Amount</th>
+                    <th className="p-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                    <th className="p-5 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {ngoDonations.length === 0 && !isLoading && (
+                    <EmptyRow colSpan={5} message="No NGO donations yet." />
+                  )}
+                  {ngoDonations.map((d) => {
+                    const date = donationTimestampToDate(d.timestamp);
+                    const detail =
+                      d.type === 'money'
+                        ? `Rs. ${(d.amount || 0).toLocaleString()}`
+                        : d.items || d.quantity || d.type;
+                    return (
+                      <tr key={d.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-5">
+                          <div className="font-bold text-slate-700">{d.ngoName || d.ngoId}</div>
+                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                            {date
+                              ? date.toLocaleDateString('en-GB', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })
+                              : 'Just now'}
+                            {d.source ? ` · ${d.source}` : ''}
+                          </div>
+                        </td>
+                        <td className="p-5 font-medium text-slate-600 text-sm">
+                          {d.donorName || 'Anonymous'}
+                        </td>
+                        <td className="p-5">
+                          <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-slate-100 text-slate-600 mr-2">
+                            {d.type}
+                          </span>
+                          <span className="font-black text-emerald-600 text-sm">{detail}</span>
+                        </td>
+                        <td className="p-5">
+                          <span
+                            className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${statusBadgeClasses(
+                              d.status
+                            )}`}
+                          >
+                            {formatDonationStatus(d.status)}
+                          </span>
+                          {d.adminNote && (
+                            <p className="text-[10px] text-slate-400 mt-1.5 max-w-[180px] truncate">
+                              Note: {d.adminNote}
+                            </p>
+                          )}
+                        </td>
+                        <td className="p-5 text-right">
+                          <button
+                            onClick={() => openDonationReview(d)}
+                            className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all inline-flex items-center gap-2"
+                          >
+                            <Icons.Eye size={14} /> Review
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+
             {activeTab === 'viewToHelp' && (
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -553,6 +807,152 @@ export default function AdminPanel() {
           )}
         </div>
       </div>
+
+      {/* NGO Donation review modal */}
+      {selectedDonation && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-white rounded-[2.5rem] max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-zoom-in">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold bg-emerald-100 text-emerald-600">
+                  <Icons.HandHeart size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">
+                    {selectedDonation.ngoName || 'NGO Donation'}
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">
+                    Review · Updates NGO Portal live
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedDonation(null)}
+                className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-all"
+              >
+                <Icons.XCircle size={20} />
+              </button>
+            </div>
+
+            <div className="p-8 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InfoBox icon={Icons.User} label="Donor" value={selectedDonation.donorName} />
+                <InfoBox icon={Icons.Building2} label="NGO" value={selectedDonation.ngoName} />
+                <InfoBox
+                  icon={Icons.Package}
+                  label="Type"
+                  value={selectedDonation.type}
+                />
+                <InfoBox
+                  icon={Icons.Coins}
+                  label="Amount / Items"
+                  value={
+                    selectedDonation.type === 'money'
+                      ? `Rs. ${(selectedDonation.amount || 0).toLocaleString()}`
+                      : selectedDonation.items || selectedDonation.quantity || '—'
+                  }
+                />
+                <InfoBox
+                  icon={Icons.Tag}
+                  label="Source"
+                  value={selectedDonation.source}
+                />
+                <InfoBox
+                  icon={Icons.BadgeCheck}
+                  label="Current Status"
+                  value={formatDonationStatus(selectedDonation.status)}
+                />
+                {selectedDonation.paymentMethod && (
+                  <InfoBox
+                    icon={Icons.Wallet}
+                    label="Payment Method"
+                    value={selectedDonation.paymentMethod}
+                  />
+                )}
+                {selectedDonation.transactionId && (
+                  <InfoBox
+                    icon={Icons.Hash}
+                    label="Transaction ID"
+                    value={selectedDonation.transactionId}
+                    isMono
+                  />
+                )}
+              </div>
+
+              {selectedDonation.receiptUrl && (
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                    Receipt
+                  </p>
+                  <div className="rounded-2xl border border-slate-100 overflow-hidden bg-slate-50 p-4 max-h-48 flex items-center justify-center">
+                    <img
+                      src={selectedDonation.receiptUrl}
+                      alt="Receipt"
+                      className="max-h-40 object-contain"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                  Admin Note (visible on NGO Portal)
+                </label>
+                <textarea
+                  rows={3}
+                  value={adminNoteDraft}
+                  onChange={(e) => setAdminNoteDraft(e.target.value)}
+                  placeholder="Write a custom note for this donation..."
+                  className="w-full bg-slate-50 border-0 focus:ring-2 focus:ring-emerald-500 rounded-2xl py-3.5 px-4 text-sm font-medium resize-y"
+                />
+                <button
+                  type="button"
+                  disabled={donationActionLoading}
+                  onClick={handleSaveAdminNoteOnly}
+                  className="mt-2 text-xs font-bold text-emerald-600 hover:text-emerald-700 disabled:opacity-50"
+                >
+                  Save note only
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={donationActionLoading}
+                  onClick={() => handleDonationStatusUpdate('approved')}
+                  className="w-full bg-emerald-600 text-white py-3 rounded-xl font-black text-sm hover:bg-emerald-700 shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Icons.CheckCircle2 size={18} /> Approve
+                </button>
+                <button
+                  type="button"
+                  disabled={donationActionLoading}
+                  onClick={() => handleDonationStatusUpdate('rejected')}
+                  className="w-full bg-white text-rose-500 border-2 border-rose-100 py-3 rounded-xl font-black text-sm hover:bg-rose-50 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Icons.XCircle size={18} /> Reject
+                </button>
+                <button
+                  type="button"
+                  disabled={donationActionLoading}
+                  onClick={() => handleDonationStatusUpdate('refunded')}
+                  className="w-full bg-slate-100 text-slate-700 py-3 rounded-xl font-black text-sm hover:bg-slate-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Icons.RotateCcw size={18} /> Refund
+                </button>
+                <button
+                  type="button"
+                  disabled={donationActionLoading}
+                  onClick={() => handleDonationStatusUpdate('action_required')}
+                  className="w-full bg-orange-50 text-orange-700 border border-orange-200 py-3 rounded-xl font-black text-sm hover:bg-orange-100 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Icons.AlertTriangle size={18} /> Action Required
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-fade-in">

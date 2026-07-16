@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { db, auth, storage } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { buildDonationPayload } from '../lib/donations';
 import { 
   Building2, 
   User, 
@@ -360,15 +361,9 @@ function CorporateForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
 }
 
 function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
-  const NGOS = [
-    "Edhi Foundation",
-    "Saylani Welfare Trust",
-    "Chhipa Welfare Association",
-    "Shaukat Khanum Memorial",
-    "Indus Hospital & Health Network",
-    "Other / NGO Not Listed"
-  ];
+  const OTHER_NGO = 'Other / NGO Not Listed';
 
+  const [ngoOptions, setNgoOptions] = useState<{ id: string; name: string }[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -376,7 +371,8 @@ function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
     transactionId: '',
     amount: '1000',
     destination: 'platform',
-    selectedNgo: NGOS[0],
+    selectedNgoId: '',
+    selectedNgo: '',
     customNgoName: '',
     customNgoAddress: '',
     paymentMethod: 'Card',
@@ -392,6 +388,20 @@ function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
   const paymentInputRef = useRef<HTMLInputElement>(null);
 
   const donationAmount = parseFloat(formData.amount) || 0;
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'Ngos'), (snapshot) => {
+      const list = snapshot.docs
+        .map((d) => ({ id: d.id, name: (d.data().name as string) || 'Unnamed NGO' }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      setNgoOptions(list);
+      setFormData((prev) => {
+        if (prev.selectedNgoId || list.length === 0) return prev;
+        return { ...prev, selectedNgoId: list[0].id, selectedNgo: list[0].name };
+      });
+    });
+    return () => unsub();
+  }, []);
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -411,14 +421,45 @@ function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
     setLoading(true);
     try {
       const receiptBase64 = await fileToBase64(paymentFile);
+      const isCustomNgo = formData.selectedNgoId === OTHER_NGO;
+      const resolvedNgoName = isCustomNgo
+        ? (formData.customNgoName || 'Custom NGO')
+        : (ngoOptions.find((n) => n.id === formData.selectedNgoId)?.name || formData.selectedNgo);
+
       await addDoc(collection(db, 'sponsors'), {
         ...formData,
+        selectedNgo: resolvedNgoName,
         amount: donationAmount,
         receiptUrl: receiptBase64,
         type: 'individual',
         status: 'pending',
         submittedAt: serverTimestamp()
       });
+
+      // Direct/manual NGO donations appear on NGO Portal as Under Review
+      if (formData.destination === 'ngo' && formData.selectedNgoId && !isCustomNgo) {
+        if (!auth.currentUser) {
+          showToast('Sign in so this donation is linked to the NGO Portal.', 'error');
+        } else {
+          await addDoc(
+            collection(db, 'donations'),
+            buildDonationPayload({
+              ngoId: formData.selectedNgoId,
+              ngoName: resolvedNgoName,
+              donorId: auth.currentUser.uid,
+              donorName: formData.name || auth.currentUser.displayName || 'Anonymous donor',
+              type: 'money',
+              amount: donationAmount,
+              status: 'under_review',
+              source: 'individual',
+              receiptUrl: receiptBase64,
+              paymentMethod: formData.paymentMethod,
+              transactionId: formData.transactionId,
+            })
+          );
+        }
+      }
+
       setSuccess(true);
       showToast('Donation submitted!', 'success');
     } catch (err) {
@@ -492,14 +533,24 @@ function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Select NGO</label>
                 <select
-                  value={formData.selectedNgo}
-                  onChange={(e) => setFormData({ ...formData, selectedNgo: e.target.value })}
+                  value={formData.selectedNgoId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const name =
+                      id === OTHER_NGO
+                        ? OTHER_NGO
+                        : (ngoOptions.find((n) => n.id === id)?.name || '');
+                    setFormData({ ...formData, selectedNgoId: id, selectedNgo: name });
+                  }}
                   className="w-full bg-slate-50 border-0 focus:ring-2 focus:ring-emerald-500 rounded-2xl py-3.5 px-4 text-sm font-medium"
                 >
-                  {NGOS.map(ngo => <option key={ngo} value={ngo}>{ngo}</option>)}
+                  {ngoOptions.map((ngo) => (
+                    <option key={ngo.id} value={ngo.id}>{ngo.name}</option>
+                  ))}
+                  <option value={OTHER_NGO}>{OTHER_NGO}</option>
                 </select>
               </div>
-              {formData.selectedNgo === 'Other / NGO Not Listed' && (
+              {formData.selectedNgoId === OTHER_NGO && (
                 <div className="space-y-4 contents">
                   <FormField label="NGO Name" icon={<Building2 size={18} />} placeholder="Enter NGO name" value={formData.customNgoName} onChange={(v: string) => setFormData({...formData, customNgoName: v})} />
                   <FormField label="NGO Address" icon={<Mail size={18} />} placeholder="NGO location / city" value={formData.customNgoAddress} onChange={(v: string) => setFormData({...formData, customNgoAddress: v})} />
@@ -525,7 +576,11 @@ function SupporterForm({ formatCNIC }: { formatCNIC: (v: string) => string }) {
                   <div className="flex justify-between items-start text-sm">
                     <span className="text-slate-500 font-medium">Purpose:</span>
                     <span className="text-slate-900 font-bold text-right max-w-[200px]">
-                      {formData.destination === 'platform' ? 'FreeHunger General Fund' : (formData.selectedNgo === 'Other / NGO Not Listed' ? formData.customNgoName || 'Custom NGO' : formData.selectedNgo)}
+                      {formData.destination === 'platform'
+                        ? 'FreeHunger General Fund'
+                        : (formData.selectedNgoId === OTHER_NGO
+                          ? formData.customNgoName || 'Custom NGO'
+                          : (ngoOptions.find((n) => n.id === formData.selectedNgoId)?.name || formData.selectedNgo))}
                     </span>
                   </div>
                   <div className="pt-4 border-t border-slate-100 flex justify-between items-center">

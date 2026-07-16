@@ -9,6 +9,9 @@ import Feed from './components/Feed';
 import VolunteerForm from './components/VolunteerForm';
 import SponsorPage from './components/SponsorPage';
 import AdminPanel from './components/AdminPanel';
+import NgoDashboard from './components/NgoPortal/NgoDashboard';
+import TransactionHistory from './components/NgoPortal/TransactionHistory';
+import NgoProfile from './components/NgoPortal/NgoProfile';
 import MessagesPage from './components/MessagesPage';
 import JoinGroupPage from './components/JoinGroupPage';
 import Blog from './components/Blog';
@@ -42,6 +45,9 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/ngo-portal" element={<NgoDashboard />} />
+          <Route path="/ngo-portal/history" element={<TransactionHistory />} />
+          <Route path="/ngo-portal/profile" element={<NgoProfile />} />
           <Route path="/discussions" element={<MessagesPage />} />
           <Route path="/discussions/:discussionId" element={<MessagesPage />} />
           <Route path="/messages" element={<MessagesPage />} />

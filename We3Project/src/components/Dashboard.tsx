@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, collection, query, orderBy, limit, updateDoc, increment, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { useToast } from './Toast';
 import { useUserRole } from '../lib/useUserRole';
+import { buildDonationPayload, newDonationRef } from '../lib/donations';
 
 // Sub-components
 import UserInfoBar from './Dashboard/UserInfoBar';
@@ -157,6 +158,10 @@ const Dashboard = () => {
       const userRef = doc(db, 'users', userData.uid);
       const ngoRef = doc(db, 'Ngos', selectedNgoId);
       const historyRef = doc(collection(userRef, 'donations'));
+      // ViewToHelp credit donations: auto-approved and visible on NGO Portal
+      const portalDonationRef = newDonationRef(db);
+      const donorName =
+        userData.username || userData.name || userData.displayName || 'Anonymous donor';
 
       batch.update(userRef, {
         credits: increment(-donationAmount),
@@ -173,6 +178,20 @@ const Dashboard = () => {
         amount: donationAmount,
         timestamp: serverTimestamp()
       });
+
+      batch.set(
+        portalDonationRef,
+        buildDonationPayload({
+          ngoId: selectedNgoId,
+          ngoName: ngo.name,
+          donorId: userData.uid,
+          donorName,
+          type: 'money',
+          amount: donationAmount,
+          status: 'approved',
+          source: 'credits',
+        })
+      );
 
       await batch.commit();
       setDonationAmount('');

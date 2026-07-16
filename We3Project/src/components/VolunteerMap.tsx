@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { db } from '../lib/firebase';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
+import { addDoc, collection, onSnapshot, query } from 'firebase/firestore';
 import { Navigation } from 'lucide-react';
 import DonationRequestForm from './VolunteerMap/DonationRequestForm';
 import { useToast } from './Toast';
+import { buildDonationPayload, mapInKindDonationType } from '../lib/donations';
 
 // Fix for Leaflet marker icons in React
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -87,8 +88,8 @@ const VolunteerMap: React.FC = () => {
       );
     }
 
-    // Fetch NGOs
-    const q = query(collection(db, 'ngos'));
+    // Fetch NGOs (capital-N collection is the source of truth)
+    const q = query(collection(db, 'Ngos'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const ngoList = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -124,9 +125,47 @@ const VolunteerMap: React.FC = () => {
     return () => unsubscribe();
   }, [userLocation]);
 
-  const handleDonationRequest = (payload: Record<string, string>) => {
-    showToast(`Request sent for ${payload.ngoLabel ?? 'your selected NGO'}. We will contact you soon.`, 'success');
-    setIsModalOpen(false);
+  const handleDonationRequest = async (payload: Record<string, string>) => {
+    const user = auth.currentUser;
+    if (!user) {
+      showToast('Please sign in to submit a donation request.', 'error');
+      return;
+    }
+    if (!payload.ngoId) {
+      showToast('Please select an NGO.', 'error');
+      return;
+    }
+
+    try {
+      const type = mapInKindDonationType(payload.donationType || '');
+      const itemsParts = [
+        payload.donationType,
+        payload.donationDetails,
+        payload.quantity ? `Qty: ${payload.quantity}` : '',
+        payload.notes,
+      ].filter(Boolean);
+
+      await addDoc(
+        collection(db, 'donations'),
+        buildDonationPayload({
+          ngoId: payload.ngoId,
+          ngoName: payload.ngoLabel || 'NGO',
+          donorId: user.uid,
+          donorName: payload.donorName || user.displayName || 'Anonymous donor',
+          type,
+          items: itemsParts.join(' · ') || payload.donationType,
+          quantity: payload.quantity,
+          status: 'under_review',
+          source: 'in_kind',
+        })
+      );
+
+      showToast(`Request sent for ${payload.ngoLabel ?? 'your selected NGO'}.`, 'success');
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Donation request failed:', error);
+      showToast('Could not submit donation request. Please try again.', 'error');
+    }
   };
 
   return (
