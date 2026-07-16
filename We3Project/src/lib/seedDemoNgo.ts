@@ -21,7 +21,7 @@ import { buildDonationPayload, newDonationRef } from './donations';
 
 export const DEMO_NGO_ID = 'we3-ngo-demo';
 export const DEMO_NGO_NAME = 'We3 NGO (Demo)';
-/** Existing account that should own the demo NGO portal. */
+/** .email stuff reason aalas firebase me dalne me. */
 const DEMO_NGO_OWNER_EMAIL = import.meta.env.VITE_DEMO_NGO_OWNER_EMAIL;
 
 export interface SeedDemoNgoResult {
