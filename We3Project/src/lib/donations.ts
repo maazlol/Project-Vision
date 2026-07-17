@@ -8,6 +8,7 @@ import {
 
 export type DonationType = 'money' | 'food' | 'clothes';
 export type DonationStatus =
+  | 'pending'
   | 'under_review'
   | 'approved'
   | 'rejected'
@@ -108,6 +109,8 @@ export function donationTimestampToDate(timestamp: any): Date | null {
 
 export function formatDonationStatus(status: DonationStatus | string): string {
   switch (status) {
+    case 'pending':
+      return 'Pending';
     case 'under_review':
       return 'Under Review';
     case 'approved':
@@ -127,6 +130,7 @@ export function statusBadgeClasses(status: DonationStatus | string): string {
   switch (status) {
     case 'approved':
       return 'bg-emerald-100 text-emerald-700';
+    case 'pending':
     case 'under_review':
       return 'bg-amber-100 text-amber-700';
     case 'rejected':

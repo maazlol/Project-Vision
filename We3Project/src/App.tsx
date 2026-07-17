@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard';
 import Settings from './components/Settings';
 import Feed from './components/Feed';
 import VolunteerForm from './components/VolunteerForm';
+import NgoRegisterForm from './components/NgoRegisterForm';
 import SponsorPage from './components/SponsorPage';
 import AdminPanel from './components/AdminPanel';
 import NgoDashboard from './components/NgoPortal/NgoDashboard';
@@ -68,6 +69,9 @@ function App() {
                       <button onClick={() => navigate('/volunteer')} className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold bg-emerald-700/50 text-emerald-100 hover:bg-emerald-700 transition-all">
                         Volunteer
                       </button>
+                      <button onClick={() => navigate('/ngo-register')} className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold bg-emerald-700/50 text-emerald-100 hover:bg-emerald-700 transition-all">
+                        NGO Register
+                      </button>
                     </div>
                   </div>
 
@@ -77,6 +81,7 @@ function App() {
             </div>
           } />
           <Route path="/volunteer" element={<div className="pt-24 pb-20 container mx-auto px-4"><VolunteerForm /></div>} />
+          <Route path="/ngo-register" element={<div className="pt-24 pb-20 container mx-auto px-4"><NgoRegisterForm /></div>} />
           <Route path="/about" element={<About />} />
           <Route path="/news" element={<News />} />
           <Route path="/blog" element={<Blog />} />

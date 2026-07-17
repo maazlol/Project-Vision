@@ -89,6 +89,19 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // NGO registration applications (Feed → NGO Register form).
+    // Collection name must match client: "ngoRegister" (not Ngos / ngos).
+    // Auth users: create own pending app + read own docs only.
+    // Admins: full read/update/delete (approve/reject). Not public.
+    match /ngoRegister/{applicationId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update, delete: if isAdmin();
+    }
+
     // NGO catalog (capital N). Legacy lowercase "ngos" is not used for new data.
     function isNgoOwner(ngoId) {
       return signedIn()
@@ -120,7 +133,7 @@ service cloud.firestore {
         ])
         && request.resource.data.type in ['money', 'food', 'clothes']
         && request.resource.data.status in [
-          'under_review', 'approved', 'rejected', 'refunded', 'action_required'
+          'pending', 'under_review', 'approved', 'rejected', 'refunded', 'action_required'
         ]
         && request.resource.data.source in ['credits', 'individual', 'in_kind'];
 
