@@ -84,6 +84,7 @@ function App() {
           <Route path="/ngo-register" element={<div className="pt-24 pb-20 container mx-auto px-4"><NgoRegisterForm /></div>} />
           <Route path="/about" element={<About />} />
           <Route path="/news" element={<News />} />
+          <Route path="/news/:slug" element={<Article />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<Article />} />
           <Route path="/sponsor" element={<SponsorPage />} />

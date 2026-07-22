@@ -25,6 +25,7 @@ import {
   statusBadgeClasses,
 } from '../lib/donations';
 import { DemoNgoSeedError, seedDemoNgo } from '../lib/seedDemoNgo';
+import AdminManagePosts from './cms/AdminManagePosts';
 
 // --- Interfaces ---
 
@@ -125,7 +126,8 @@ type TabType =
   | 'activeVolunteers'
   | 'ngoRegister'
   | 'activeNgos'
-  | 'ngoDonations';
+  | 'ngoDonations'
+  | 'managePosts';
 
 export default function AdminPanel() {
   const { profile, loading: authLoading } = useUserRole();
@@ -150,6 +152,8 @@ export default function AdminPanel() {
   useEffect(() => {
     if (profile?.role !== 'admin') return;
     if (activeTab === 'ngoDonations') return;
+    // CMS posts manage their own data loading
+    if (activeTab === 'managePosts') return;
 
     // Active NGOs: live snapshot so latest NGO Profile always shows
     if (activeTab === 'activeNgos') {
@@ -616,6 +620,7 @@ export default function AdminPanel() {
               { id: 'ngoDonations', icon: Icons.HandHeart, label: 'NGO Donations' },
               { id: 'ngoRegister', icon: Icons.ClipboardList, label: 'NGO Register' },
               { id: 'activeNgos', icon: Icons.Building2, label: 'Active NGOs' },
+              { id: 'managePosts', icon: Icons.Newspaper, label: 'Manage Posts' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -640,6 +645,10 @@ export default function AdminPanel() {
         )}
 
         <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative min-h-[500px]">
+          {activeTab === 'managePosts' ? (
+            <AdminManagePosts />
+          ) : (
+          <>
           <div className="p-6 border-b border-slate-100 flex items-center justify-between">
             <h3 className="font-black text-slate-800 uppercase tracking-wider text-sm flex items-center gap-2">
               {activeTab === 'sponsors' && <Icons.Heart size={16} className="text-rose-500"/>}
@@ -668,10 +677,6 @@ export default function AdminPanel() {
               <button onClick={handleSeedData} className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all flex items-center gap-1.5">
                 <Icons.Zap size={14} /> Seed Data
               </button>
-              <div className="relative group">
-                <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" size={16} />
-                <input type="text" placeholder="Search..." className="bg-slate-50 border-0 focus:ring-2 focus:ring-emerald-500 rounded-xl py-2 pl-10 pr-4 text-xs font-medium w-64 transition-all" />
-              </div>
             </div>
           </div>
 
@@ -1064,6 +1069,8 @@ export default function AdminPanel() {
             <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-10">
               <Icons.Loader2 className="animate-spin text-emerald-600" size={32} />
             </div>
+          )}
+          </>
           )}
         </div>
       </div>

@@ -158,6 +158,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Social Impact Feed posts (do not confuse with CMS collection cmsPosts)
     match /posts/{postId} {
       allow read: if true;
       allow create: if signedIn()
@@ -172,6 +173,30 @@ service cloud.firestore {
         allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
         allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
       }
+    }
+
+    // Blog & News CMS (Admin-managed content)
+    // Public may only read published documents; admins have full CRUD.
+    match /cmsPosts/{postId} {
+      allow read: if resource.data.published == true || isAdmin();
+
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasAll([
+          'title', 'slug', 'excerpt', 'content', 'image', 'author',
+          'category', 'published', 'featured', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.category in ['blog', 'news']
+        && request.resource.data.published is bool
+        && request.resource.data.featured is bool
+        && request.resource.data.title is string
+        && request.resource.data.slug is string;
+
+      allow update: if isAdmin()
+        && request.resource.data.category in ['blog', 'news']
+        && request.resource.data.published is bool
+        && request.resource.data.featured is bool;
+
+      allow delete: if isAdmin();
     }
 
     match /discussions/{discussionId} {
