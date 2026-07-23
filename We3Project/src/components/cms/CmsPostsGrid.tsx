@@ -6,6 +6,29 @@ interface CmsPostsGridProps {
   loading?: boolean;
   emptyMessage?: string;
   badgeLabel?: string;
+  /** Bootstrap column class for each card. Default: three columns on large screens. */
+  columnClass?: string;
+}
+
+function GridCardSkeleton({ columnClass }: { columnClass: string }) {
+  return (
+    <div className={columnClass}>
+      <article className="blog-card cms-card-skeleton" aria-hidden>
+        <div className="blog-card-img-wrap cms-skel-media">
+          <div className="cms-skel-shimmer" />
+        </div>
+        <div className="blog-card-body">
+          <div className="cms-skel-line cms-skel-line--title" />
+          <div className="cms-skel-line cms-skel-line--body" />
+          <div className="cms-skel-line cms-skel-line--body short" />
+          <div className="cms-skel-meta">
+            <div className="cms-skel-line cms-skel-line--meta" />
+            <div className="cms-skel-line cms-skel-line--meta short" />
+          </div>
+        </div>
+      </article>
+    </div>
+  );
 }
 
 export default function CmsPostsGrid({
@@ -13,24 +36,14 @@ export default function CmsPostsGrid({
   loading,
   emptyMessage = 'No posts published yet.',
   badgeLabel,
+  columnClass = 'col-md-6 col-lg-4',
 }: CmsPostsGridProps) {
-  if (loading) {
+  // Keep real cards visible when content already exists (background refresh).
+  if (loading && posts.length === 0) {
     return (
-      <div className="row g-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="col-md-6 col-lg-4">
-            <div
-              className="blog-card animate-pulse"
-              style={{ minHeight: 360, background: '#f1f5f9' }}
-            >
-              <div style={{ height: 220, background: '#e2e8f0' }} />
-              <div className="blog-card-body">
-                <div className="h-4 bg-slate-200 rounded mb-3 w-3/4" />
-                <div className="h-3 bg-slate-100 rounded mb-2" />
-                <div className="h-3 bg-slate-100 rounded w-5/6" />
-              </div>
-            </div>
-          </div>
+      <div className="row g-4" aria-busy="true" aria-label="Loading posts">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <GridCardSkeleton key={i} columnClass={columnClass} />
         ))}
       </div>
     );
@@ -53,7 +66,7 @@ export default function CmsPostsGrid({
   return (
     <div className="row g-4">
       {posts.map((post) => (
-        <div key={post.id} className="col-md-6 col-lg-4">
+        <div key={post.id} className={columnClass}>
           <CmsPostCard post={post} badgeLabel={badgeLabel} />
         </div>
       ))}

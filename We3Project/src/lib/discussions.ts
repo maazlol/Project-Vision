@@ -127,16 +127,21 @@ export const createCustomDiscussion = async (
   }
 ) => {
   const roomRef = doc(collection(db, 'discussions'));
+  const cleanName = data.groupName.trim();
+  // Firestore rules require postId == discussion document id on create
+  // (same constraint used by post-linked rooms). Custom rooms reuse the
+  // generated doc id so create is allowed without relaxing rules.
+  const roomId = roomRef.id;
 
   await setDoc(roomRef, {
     type: 'custom' as DiscussionType,
-    postId: '',
-    postOwnerId: '',
-    postOwnerName: '',
-    postTitle: '',
+    postId: roomId,
+    postOwnerId: profile.uid,
+    postOwnerName: profile.displayName || profile.name || 'User',
+    postTitle: cleanName,
     postText: '',
     postImageUrl: '',
-    groupName: data.groupName.trim(),
+    groupName: cleanName,
     description: data.description?.trim() || '',
     audience: data.audience,
     creatorId: profile.uid,
@@ -153,7 +158,7 @@ export const createCustomDiscussion = async (
     lastMessageSenderName: ''
   });
 
-  return roomRef.id;
+  return roomId;
 };
 
 export const updateCustomDiscussionDetails = async (

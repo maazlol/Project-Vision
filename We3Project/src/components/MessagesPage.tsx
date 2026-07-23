@@ -92,6 +92,18 @@ const MessagesPage: React.FC = () => {
     navigate(`/discussions/${roomId}`);
   };
 
+  const upsertRoom = (room: DiscussionRoom) => {
+    setRooms((prev) => {
+      const existingIndex = prev.findIndex((item) => item.id === room.id);
+      if (existingIndex === -1) {
+        return [room, ...prev];
+      }
+      const next = [...prev];
+      next[existingIndex] = { ...prev[existingIndex], ...room };
+      return next;
+    });
+  };
+
   const handleCreateGroup = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!profile || creatingGroup) return;
@@ -108,15 +120,44 @@ const MessagesPage: React.FC = () => {
         audience: groupAudience
       });
 
+      // Optimistically surface the room so /discussions/:id opens immediately
+      // without waiting for the participants list snapshot.
+      upsertRoom({
+        id: roomId,
+        type: 'custom',
+        postId: roomId,
+        postOwnerId: profile.uid,
+        postOwnerName: profile.displayName || profile.name || 'User',
+        postTitle: groupName.trim(),
+        postText: '',
+        postImageUrl: '',
+        groupName: groupName.trim(),
+        description: groupDescription.trim(),
+        audience: groupAudience,
+        creatorId: profile.uid,
+        creatorName: profile.displayName || profile.name || 'User',
+        participants: [profile.uid],
+        participantRoles: {
+          [profile.uid]: profile.role
+        },
+        lastMessage: '',
+        lastMessageSenderId: '',
+        lastMessageSenderName: ''
+      });
+
       setShowCreateModal(false);
       setGroupName('');
       setGroupDescription('');
       setGroupAudience('all');
       showToast('Custom group created.', 'success');
       navigate(`/discussions/${roomId}`, { replace: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create group error:', error);
-      showToast('Failed to create group.', 'error');
+      const message =
+        error?.code === 'permission-denied'
+          ? 'Permission denied creating group. Check that you are signed in.'
+          : error?.message || 'Failed to create group.';
+      showToast(message, 'error');
     } finally {
       setCreatingGroup(false);
     }
@@ -286,10 +327,61 @@ const MessagesPage: React.FC = () => {
     }, (error) => {
       console.error('Discussion rooms error:', error);
       setRoomsLoading(false);
+      showToast(
+        error?.code === 'permission-denied'
+          ? 'Permission denied loading discussions.'
+          : 'Failed to load discussion rooms.',
+        'error'
+      );
     });
 
     return () => unsubscribe();
   }, [profile, profileLoading]);
+
+  // Deep-link / post-create open: if the URL has a room id that is not in the
+  // list snapshot yet, load that document directly (allowed for participants).
+  useEffect(() => {
+    if (!discussionId || !profile || profileLoading) return;
+    if (rooms.some((room) => room.id === discussionId)) return;
+
+    let cancelled = false;
+
+    const loadRoomById = async () => {
+      try {
+        const roomSnap = await getDoc(doc(db, 'discussions', discussionId));
+        if (cancelled) return;
+
+        if (!roomSnap.exists()) {
+          showToast('Discussion room not found.', 'error');
+          navigate('/discussions', { replace: true });
+          return;
+        }
+
+        const room = { id: roomSnap.id, ...roomSnap.data() } as DiscussionRoom;
+        if (!canAccessDiscussion(profile, room.audience)) {
+          showToast('You do not have access to this discussion.', 'error');
+          navigate('/discussions', { replace: true });
+          return;
+        }
+
+        upsertRoom(room);
+      } catch (error: any) {
+        if (cancelled) return;
+        console.error('Load discussion by id error:', error);
+        showToast(
+          error?.code === 'permission-denied'
+            ? 'You do not have access to this discussion.'
+            : 'Could not open this discussion.',
+          'error'
+        );
+      }
+    };
+
+    void loadRoomById();
+    return () => {
+      cancelled = true;
+    };
+  }, [discussionId, profile, profileLoading, rooms, navigate, showToast]);
 
   useEffect(() => {
     if (!selectedRoom || !profile || !canAccessDiscussion(profile, selectedRoom.audience)) {

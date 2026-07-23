@@ -121,6 +121,7 @@ export interface ActiveNgo {
 }
 
 type TabType =
+  | 'dashboard'
   | 'sponsors'
   | 'volunteers'
   | 'activeVolunteers'
@@ -129,9 +130,52 @@ type TabType =
   | 'ngoDonations'
   | 'managePosts';
 
+const SECTION_META: Record<
+  Exclude<TabType, 'dashboard'>,
+  { label: string; description: string; icon: keyof typeof Icons }
+> = {
+  managePosts: {
+    label: 'Posts',
+    description: 'Create, edit, and publish CMS content',
+    icon: 'Newspaper',
+  },
+  sponsors: {
+    label: 'Sponsors',
+    description: 'Review sponsorship applications',
+    icon: 'Heart',
+  },
+  volunteers: {
+    label: 'Volunteers',
+    description: 'KYC and volunteer applications',
+    icon: 'Users',
+  },
+  activeVolunteers: {
+    label: 'Active Volunteers',
+    description: 'Manage posting permissions',
+    icon: 'UserCheck',
+  },
+  ngoRegister: {
+    label: 'NGO Applications',
+    description: 'Review NGO registration requests',
+    icon: 'ClipboardList',
+  },
+  activeNgos: {
+    label: 'Active NGOs',
+    description: 'Portal-enabled organization profiles',
+    icon: 'Building2',
+  },
+  ngoDonations: {
+    label: 'Donations',
+    description: 'Verify NGO donations and receipts',
+    icon: 'HandHeart',
+  },
+};
+
 export default function AdminPanel() {
   const { profile, loading: authLoading } = useUserRole();
-  const [activeTab, setActiveTab] = useState<TabType>('sponsors');
+  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loadedSections, setLoadedSections] = useState<Partial<Record<TabType, boolean>>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -151,6 +195,7 @@ export default function AdminPanel() {
 
   useEffect(() => {
     if (profile?.role !== 'admin') return;
+    if (activeTab === 'dashboard') return;
     if (activeTab === 'ngoDonations') return;
     // CMS posts manage their own data loading
     if (activeTab === 'managePosts') return;
@@ -167,6 +212,7 @@ export default function AdminPanel() {
             .filter((n) => n.verified !== false)
             .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
           setActiveNgos(rows);
+          setLoadedSections((prev) => ({ ...prev, activeNgos: true }));
           setIsLoading(false);
         },
         (err) => {
@@ -207,6 +253,7 @@ export default function AdminPanel() {
             })
           );
         }
+        setLoadedSections((prev) => ({ ...prev, [activeTab]: true }));
       } catch (err: any) {
         console.error(`Error fetching ${activeTab}:`, err);
         setError(`Could not load ${activeTab} data.`);
@@ -245,6 +292,7 @@ export default function AdminPanel() {
         setNgoDonations(
           snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as DonationRecord))
         );
+        setLoadedSections((prev) => ({ ...prev, ngoDonations: true }));
         setIsLoading(false);
       },
       () => {
@@ -253,6 +301,7 @@ export default function AdminPanel() {
           collection(db, 'donations'),
           (snapshot) => {
             setNgoDonations(mapDocs(snapshot.docs));
+            setLoadedSections((prev) => ({ ...prev, ngoDonations: true }));
             setIsLoading(false);
             setError(null);
           },
@@ -597,77 +646,495 @@ export default function AdminPanel() {
     );
   }
 
-  return (
-    <div className="pt-24 pb-20 min-h-screen bg-slate-50 font-sans text-slate-900">
-      <div className="container mx-auto px-4 max-w-7xl">
-        {/* Header */}
-        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
-                <Icons.ShieldCheck size={24} />
-              </div>
-              <h1 className="text-3xl font-black tracking-tight">Admin Panel</h1>
-            </div>
-            <p className="text-slate-500 font-medium">Oversee community operations.</p>
-          </div>
-          
-          <div className="flex flex-wrap bg-white p-1 rounded-2xl shadow-sm border border-slate-200 w-fit gap-0.5">
-            {[
-              { id: 'sponsors', icon: Icons.Heart, label: 'Sponsors' },
-              { id: 'volunteers', icon: Icons.Users, label: 'Volunteers' },
-              { id: 'activeVolunteers', icon: Icons.UserMinus, label: 'Active' },
-              { id: 'ngoDonations', icon: Icons.HandHeart, label: 'NGO Donations' },
-              { id: 'ngoRegister', icon: Icons.ClipboardList, label: 'NGO Register' },
-              { id: 'activeNgos', icon: Icons.Building2, label: 'Active NGOs' },
-              { id: 'managePosts', icon: Icons.Newspaper, label: 'Manage Posts' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as TabType)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === tab.id ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
-                }`}
-              >
-                <tab.icon size={18} />
-                <span className="hidden sm:inline">{tab.label}</span>
-              </button>
-            ))}
-          </div>
+  const navigateTo = (tab: TabType) => {
+    setActiveTab(tab);
+    setSidebarOpen(false);
+  };
+
+  /** Dashboard cards always render; values appear once a section has been opened (no extra queries). */
+  const overviewCards: {
+    id: TabType;
+    label: string;
+    value: number | null;
+    icon: typeof Icons.Building2;
+    accent: string;
+    hint?: string;
+  }[] = [
+    {
+      id: 'activeNgos',
+      label: 'Active NGOs',
+      value: loadedSections.activeNgos ? activeNgos.length : null,
+      icon: Icons.Building2,
+      accent: 'bg-amber-50 text-amber-600',
+    },
+    {
+      id: 'activeVolunteers',
+      label: 'Active Volunteers',
+      value: loadedSections.activeVolunteers ? activeVolunteers.length : null,
+      icon: Icons.Users,
+      accent: 'bg-emerald-50 text-emerald-600',
+    },
+    {
+      id: 'ngoDonations',
+      label: 'Donations',
+      value: loadedSections.ngoDonations ? ngoDonations.length : null,
+      icon: Icons.HandHeart,
+      accent: 'bg-rose-50 text-rose-600',
+    },
+    {
+      id: 'sponsors',
+      label: 'Sponsors',
+      value: loadedSections.sponsors ? sponsors.length : null,
+      icon: Icons.Heart,
+      accent: 'bg-pink-50 text-pink-600',
+    },
+    {
+      id: 'volunteers',
+      label: 'Volunteer Apps',
+      value: loadedSections.volunteers
+        ? volunteers.filter((v) => v.status === 'pending').length
+        : null,
+      icon: Icons.ClipboardCheck,
+      accent: 'bg-teal-50 text-teal-600',
+      hint: 'pending',
+    },
+    {
+      id: 'ngoRegister',
+      label: 'NGO Applications',
+      value: loadedSections.ngoRegister
+        ? ngoRegisterApps.filter((a) => a.status === 'pending').length
+        : null,
+      icon: Icons.ClipboardList,
+      accent: 'bg-indigo-50 text-indigo-600',
+      hint: 'pending',
+    },
+  ];
+
+  const recentActivity = [
+    ...sponsors
+      .filter((s) => s.status === 'pending')
+      .slice(0, 4)
+      .map((s) => ({
+        id: `s-${s.id}`,
+        title: s.companyName || s.name,
+        meta: 'Sponsor pending review',
+        tab: 'sponsors' as TabType,
+        icon: Icons.Heart,
+      })),
+    ...volunteers
+      .filter((v) => v.status === 'pending')
+      .slice(0, 4)
+      .map((v) => ({
+        id: `v-${v.id}`,
+        title: v.name,
+        meta: 'Volunteer KYC pending',
+        tab: 'volunteers' as TabType,
+        icon: Icons.Users,
+      })),
+    ...ngoRegisterApps
+      .filter((a) => a.status === 'pending')
+      .slice(0, 4)
+      .map((a) => ({
+        id: `n-${a.id}`,
+        title: a.name,
+        meta: 'NGO application pending',
+        tab: 'ngoRegister' as TabType,
+        icon: Icons.Building2,
+      })),
+    ...ngoDonations.slice(0, 4).map((d) => ({
+      id: `d-${d.id}`,
+      title: d.ngoName || d.donorName || 'Donation',
+      meta: `${formatDonationStatus(d.status)} · ${d.type}`,
+      tab: 'ngoDonations' as TabType,
+      icon: Icons.HandHeart,
+    })),
+  ].slice(0, 8);
+
+  const sectionMeta =
+    activeTab !== 'dashboard' ? SECTION_META[activeTab] : null;
+  const SectionIcon =
+    sectionMeta ? (Icons[sectionMeta.icon] as typeof Icons.Newspaper) : Icons.LayoutDashboard;
+
+  const navButtonClass = (tab: TabType) =>
+    `w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+      activeTab === tab
+        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+    }`;
+
+  const SidebarNav = () => (
+    <nav className="flex flex-col gap-5 px-3 pb-6">
+      <div>
+        <button type="button" onClick={() => navigateTo('dashboard')} className={navButtonClass('dashboard')}>
+          <Icons.LayoutDashboard size={18} />
+          Dashboard
+        </button>
+      </div>
+
+      <div>
+        <p className="px-3 mb-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">Content</p>
+        <div className="space-y-0.5">
+          <button type="button" onClick={() => navigateTo('managePosts')} className={navButtonClass('managePosts')}>
+            <Icons.Newspaper size={18} />
+            Posts
+          </button>
         </div>
+      </div>
 
-        {/* Error Alert */}
-        {error && (
-          <div className="mb-6 bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 text-rose-600 animate-fade-in">
-            <Icons.AlertCircle size={20} />
-            <p className="text-sm font-bold">{error}</p>
+      <div>
+        <p className="px-3 mb-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">Community</p>
+        <div className="space-y-0.5">
+          <button type="button" onClick={() => navigateTo('sponsors')} className={navButtonClass('sponsors')}>
+            <Icons.Heart size={18} />
+            Sponsors
+          </button>
+          <button type="button" onClick={() => navigateTo('volunteers')} className={navButtonClass('volunteers')}>
+            <Icons.Users size={18} />
+            Volunteers
+          </button>
+          <button type="button" onClick={() => navigateTo('activeVolunteers')} className={navButtonClass('activeVolunteers')}>
+            <Icons.UserCheck size={18} />
+            Active Volunteers
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <p className="px-3 mb-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">NGOs</p>
+        <div className="space-y-0.5">
+          <button type="button" onClick={() => navigateTo('ngoRegister')} className={navButtonClass('ngoRegister')}>
+            <Icons.ClipboardList size={18} />
+            Applications
+          </button>
+          <button type="button" onClick={() => navigateTo('activeNgos')} className={navButtonClass('activeNgos')}>
+            <Icons.Building2 size={18} />
+            Active NGOs
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <p className="px-3 mb-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">Finance</p>
+        <div className="space-y-0.5">
+          <button type="button" onClick={() => navigateTo('ngoDonations')} className={navButtonClass('ngoDonations')}>
+            <Icons.HandHeart size={18} />
+            Donations
+          </button>
+        </div>
+      </div>
+    </nav>
+  );
+
+  const SidebarBrand = ({ showClose = false }: { showClose?: boolean }) => (
+    <div className="px-4 py-4 border-b border-slate-100 flex items-center gap-3 shrink-0">
+      <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-200">
+        <Icons.ShieldCheck size={18} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-black text-slate-900 truncate">FreeHunger</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Admin Console</p>
+      </div>
+      {showClose && (
+        <button
+          type="button"
+          className="ml-auto w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close menu"
+        >
+          <Icons.X size={16} />
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    /* Contained app shell: fills space under navbar, never fixed over the site footer */
+    <div className="bg-slate-50 font-sans text-slate-900 pt-16">
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-[2px] lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Mobile off-canvas drawer only (overlay; does not affect page layout) */}
+      <aside
+        className={`lg:hidden fixed z-50 top-16 bottom-0 left-0 w-64 bg-white border-r border-slate-200/80 flex flex-col transition-transform duration-200 ${
+          sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full pointer-events-none'
+        }`}
+        aria-hidden={!sidebarOpen}
+      >
+        <SidebarBrand showClose />
+        <div className="flex-1 overflow-y-auto py-3">
+          <SidebarNav />
+        </div>
+      </aside>
+
+      {/* In-flow dashboard shell — sidebar + content; footer stays below this block */}
+      <div className="flex min-h-[calc(100vh-4rem)] w-full">
+        {/* Desktop sidebar: sticky within admin height only (never covers footer) */}
+        <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-slate-200/80 bg-white sticky top-16 self-start h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)]">
+          <SidebarBrand />
+          <div className="flex-1 overflow-y-auto py-3 min-h-0">
+            <SidebarNav />
           </div>
-        )}
+          <div className="shrink-0 border-t border-slate-100 px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Signed in as</p>
+            <p className="text-xs font-semibold text-slate-700 truncate mt-0.5">
+              {profile?.displayName || profile?.email || 'Admin'}
+            </p>
+          </div>
+        </aside>
 
-        <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative min-h-[500px]">
+        {/* Main column */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          <header className="sticky top-16 z-30 bg-white/95 backdrop-blur border-b border-slate-200/80 shrink-0">
+            <div className="px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <button
+                  type="button"
+                  className="lg:hidden w-10 h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-50"
+                  onClick={() => setSidebarOpen(true)}
+                  aria-label="Open menu"
+                >
+                  <Icons.Menu size={18} />
+                </button>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-lg sm:text-xl font-black tracking-tight text-slate-900 truncate">
+                      {activeTab === 'dashboard' ? 'Dashboard' : sectionMeta?.label || 'Admin'}
+                    </h1>
+                    {activeTab !== 'dashboard' && (
+                      <span className="hidden sm:inline-flex text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md">
+                        Admin
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-500 font-medium truncate">
+                    {activeTab === 'dashboard'
+                      ? 'Platform management overview'
+                      : sectionMeta?.description || 'Platform Management Dashboard'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                {profile && (
+                  <div className="hidden sm:flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-black">
+                      {(profile.displayName || profile.email || 'A')
+                        .split(' ')
+                        .filter(Boolean)
+                        .map((p) => p[0])
+                        .join('')
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-800 truncate max-w-[140px]">
+                        {profile.displayName || 'Admin'}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-medium truncate max-w-[140px]">
+                        {profile.email}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <RouterLink
+                  to="/"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-emerald-600 px-3 py-2 rounded-xl hover:bg-emerald-50 transition-all border border-transparent hover:border-emerald-100"
+                >
+                  <Icons.Home size={14} />
+                  <span className="hidden sm:inline">Site</span>
+                </RouterLink>
+              </div>
+            </div>
+          </header>
+
+          <div className="flex-1 px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-10 max-w-[1400px] w-full mx-auto">
+          {/* Error Alert */}
+          {error && (
+            <div className="mb-6 bg-rose-50 border border-rose-100 p-4 rounded-xl flex items-center gap-3 text-rose-600">
+              <Icons.AlertCircle size={20} />
+              <p className="text-sm font-bold">{error}</p>
+            </div>
+          )}
+
+          {activeTab === 'dashboard' ? (
+            <div className="space-y-6 lg:space-y-8">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+                <div>
+                  <h2 className="text-2xl font-black tracking-tight text-slate-900">Overview</h2>
+                  <p className="text-sm text-slate-500 font-medium mt-1 max-w-xl">
+                    Jump into any area of the platform. Counts fill in after you open a section — no extra database load on the dashboard.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigateTo('managePosts')}
+                  className="inline-flex items-center gap-2 self-start sm:self-auto bg-emerald-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-emerald-700 shadow-sm shadow-emerald-200 transition-all"
+                >
+                  <Icons.Plus size={16} /> New post
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {overviewCards.map((card) => (
+                  <button
+                    key={card.id}
+                    type="button"
+                    onClick={() => navigateTo(card.id)}
+                    className="text-left bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-emerald-100 transition-all p-5 group"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${card.accent}`}>
+                        <card.icon size={20} />
+                      </div>
+                      <Icons.ArrowUpRight
+                        size={16}
+                        className="text-slate-300 group-hover:text-emerald-500 transition-colors"
+                      />
+                    </div>
+                    <p className="mt-4 text-3xl font-black tracking-tight text-slate-900 tabular-nums">
+                      {card.value === null ? (
+                        <span className="text-slate-300">—</span>
+                      ) : (
+                        card.value
+                      )}
+                    </p>
+                    <p className="text-sm font-semibold text-slate-600 mt-1 flex flex-wrap items-center gap-1.5">
+                      <span>{card.label}</span>
+                      {card.hint ? (
+                        <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                          {card.hint}
+                        </span>
+                      ) : null}
+                    </p>
+                    {card.value === null && (
+                      <p className="text-[11px] text-slate-400 font-medium mt-2">
+                        Open section to load count
+                      </p>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5">
+                <div className="lg:col-span-1 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+                  <h3 className="text-sm font-black text-slate-900 mb-1">Quick Actions</h3>
+                  <p className="text-xs text-slate-500 font-medium mb-4">Common admin workflows</p>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => navigateTo('managePosts')}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-200"
+                    >
+                      <Icons.Plus size={16} /> Create Post
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigateTo('ngoRegister')}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50 text-slate-700 text-sm font-bold hover:bg-slate-100 border border-slate-100 transition-all"
+                    >
+                      <Icons.ClipboardCheck size={16} className="text-indigo-500" /> Review NGOs
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigateTo('volunteers')}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50 text-slate-700 text-sm font-bold hover:bg-slate-100 border border-slate-100 transition-all"
+                    >
+                      <Icons.UserCheck size={16} className="text-emerald-500" /> Review Volunteers
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigateTo('ngoDonations')}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50 text-slate-700 text-sm font-bold hover:bg-slate-100 border border-slate-100 transition-all"
+                    >
+                      <Icons.HandHeart size={16} className="text-rose-500" /> Review Donations
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigateTo('sponsors')}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50 text-slate-700 text-sm font-bold hover:bg-slate-100 border border-slate-100 transition-all"
+                    >
+                      <Icons.Heart size={16} className="text-pink-500" /> Review Sponsors
+                    </button>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+                  <div className="flex items-center justify-between mb-4 gap-2">
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900">Recent Activity</h3>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">From sections you have opened</p>
+                    </div>
+                    {recentActivity.length > 0 && (
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 shrink-0">
+                        Live cache
+                      </span>
+                    )}
+                  </div>
+                  {recentActivity.length > 0 ? (
+                    <ul className="divide-y divide-slate-100">
+                      {recentActivity.map((item) => (
+                        <li key={item.id}>
+                          <button
+                            type="button"
+                            onClick={() => navigateTo(item.tab)}
+                            className="w-full flex items-center gap-3 py-3 text-left hover:bg-slate-50 rounded-lg px-2 -mx-2 transition-colors"
+                          >
+                            <div className="w-9 h-9 rounded-xl bg-slate-50 text-slate-500 flex items-center justify-center shrink-0">
+                              <item.icon size={16} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-bold text-slate-800 truncate">{item.title}</p>
+                              <p className="text-xs text-slate-500 font-medium truncate">{item.meta}</p>
+                            </div>
+                            <Icons.ChevronRight size={16} className="text-slate-300 shrink-0" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-5 py-10 text-center">
+                      <div className="w-12 h-12 rounded-xl bg-white text-slate-400 border border-slate-100 flex items-center justify-center mx-auto mb-3">
+                        <Icons.Activity size={22} />
+                      </div>
+                      <p className="text-sm font-bold text-slate-700">No activity yet</p>
+                      <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                        Open Volunteers, NGO Applications, Sponsors, or Donations once — pending items will show up here.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden relative min-h-[min(500px,60vh)]">
           {activeTab === 'managePosts' ? (
-            <AdminManagePosts />
+            <div className="p-1 sm:p-2">
+              <AdminManagePosts />
+            </div>
           ) : (
           <>
-          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="font-black text-slate-800 uppercase tracking-wider text-sm flex items-center gap-2">
-              {activeTab === 'sponsors' && <Icons.Heart size={16} className="text-rose-500"/>}
-              {activeTab === 'volunteers' && <Icons.Users size={16} className="text-emerald-500"/>}
-              {activeTab === 'activeVolunteers' && <Icons.UserMinus size={16} className="text-teal-500"/>}
-              {activeTab === 'ngoDonations' && <Icons.HandHeart size={16} className="text-emerald-500"/>}
-              {activeTab === 'ngoRegister' && <Icons.ClipboardList size={16} className="text-indigo-500"/>}
-              {activeTab === 'activeNgos' && <Icons.Building2 size={16} className="text-amber-500"/>}
-              {activeTab === 'activeVolunteers'
-                ? 'ACTIVE VOLUNTEERS'
-                : activeTab === 'ngoDonations'
-                  ? 'NGO DONATIONS'
-                  : activeTab === 'ngoRegister'
-                    ? 'NGO REGISTER APPLICATIONS'
-                    : activeTab === 'activeNgos'
-                      ? 'ACTIVE NGOS (PORTAL ACCESS)'
-                      : `${activeTab.toUpperCase()} Records`}
-            </h3>
-            <div className="flex items-center gap-3 flex-wrap">
+          <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/40">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                <SectionIcon size={18} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-black text-slate-900 tracking-tight">
+                  {sectionMeta?.label}
+                </h3>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  {sectionMeta?.description}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={handleSeedDemoNgo}
                 className="bg-violet-50 text-violet-700 border border-violet-200 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-violet-100 transition-all flex items-center gap-1.5"
@@ -1073,6 +1540,9 @@ export default function AdminPanel() {
           </>
           )}
         </div>
+          )}
+          </div>
+        </div>
       </div>
 
       {/* NGO Donation review modal */}
@@ -1423,10 +1893,12 @@ function InfoBox({ icon: Icon, label, value, isMono }: { icon: any, label: strin
 function EmptyRow({ colSpan, message }: { colSpan: number, message: string }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="p-20 text-center">
-        <div className="flex flex-col items-center gap-3 opacity-20">
-          <Icons.Package size={60} />
-          <p className="text-sm font-black uppercase tracking-widest">{message}</p>
+      <td colSpan={colSpan} className="p-16 text-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-14 h-14 rounded-xl bg-slate-50 text-slate-300 flex items-center justify-center">
+            <Icons.Package size={28} />
+          </div>
+          <p className="text-sm font-semibold text-slate-400">{message}</p>
         </div>
       </td>
     </tr>

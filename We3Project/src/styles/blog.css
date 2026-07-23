@@ -457,6 +457,92 @@ img {
     gap: 10px;
 }
 
+/* -------------------- LIGHTWEIGHT CARD SKELETONS -------------------- */
+.cms-card-skeleton {
+    pointer-events: none;
+}
+
+.cms-skel-media {
+    background: #f8fafc;
+    position: relative;
+    overflow: hidden;
+}
+
+.cms-skel-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(226, 232, 240, 0.55) 45%,
+        transparent 90%
+    );
+    background-size: 200% 100%;
+    animation: cmsSkelShimmer 1.35s ease-in-out infinite;
+}
+
+.cms-skel-line {
+    height: 10px;
+    border-radius: 999px;
+    background: #eef2f7;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+.cms-skel-line::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.7) 50%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: cmsSkelShimmer 1.35s ease-in-out infinite;
+}
+
+.cms-skel-line--title {
+    height: 14px;
+    width: 78%;
+    margin-bottom: 14px;
+}
+
+.cms-skel-line--body {
+    width: 100%;
+}
+
+.cms-skel-line--body.short {
+    width: 62%;
+}
+
+.cms-skel-line--meta {
+    width: 42%;
+    height: 8px;
+    margin-bottom: 0;
+}
+
+.cms-skel-line--meta.short {
+    width: 28%;
+}
+
+.cms-skel-meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+@keyframes cmsSkelShimmer {
+    0% {
+        background-position: 100% 0;
+    }
+    100% {
+        background-position: -100% 0;
+    }
+}
+
 /* ==========================================================================
    5. IMPACT STORIES
    ========================================================================== */

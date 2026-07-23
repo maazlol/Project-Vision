@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import {
   type CmsPost,
@@ -12,11 +12,34 @@ import {
   fetchAdminPosts,
 } from './cmsPosts';
 
+/** In-memory cache so revisiting Blog/News keeps prior content while refreshing. */
+interface PublishedPostsCacheEntry {
+  posts: CmsPost[];
+  featured: CmsPost | null;
+  heroPosts: CmsPost[];
+  hasMore: boolean;
+  lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+}
+
+const publishedPostsCache = new Map<string, PublishedPostsCacheEntry>();
+
+function publishedCacheKey(
+  category: CmsPostCategory,
+  includeFeatured: boolean,
+  includeHero: boolean,
+  pageSize: number
+): string {
+  return `${category}|f:${includeFeatured ? 1 : 0}|h:${includeHero ? 1 : 0}|p:${pageSize}`;
+}
+
 interface UsePublishedPostsResult {
   posts: CmsPost[];
   featured: CmsPost | null;
   heroPosts: CmsPost[];
+  /** True only while waiting for the first payload (no cached/local content yet). */
   loading: boolean;
+  /** True when re-fetching with content already on screen. */
+  refreshing: boolean;
   loadingMore: boolean;
   error: string | null;
   hasMore: boolean;
@@ -31,18 +54,40 @@ export function usePublishedPosts(
   const includeFeatured = options?.includeFeatured ?? true;
   const includeHero = options?.includeHero ?? false;
   const pageSize = options?.pageSize ?? CMS_PAGE_SIZE;
+  const cacheKey = publishedCacheKey(category, includeFeatured, includeHero, pageSize);
+  const cached = publishedPostsCache.get(cacheKey);
 
-  const [posts, setPosts] = useState<CmsPost[]>([]);
-  const [featured, setFeatured] = useState<CmsPost | null>(null);
-  const [heroPosts, setHeroPosts] = useState<CmsPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<CmsPost[]>(() => cached?.posts ?? []);
+  const [featured, setFeatured] = useState<CmsPost | null>(() => cached?.featured ?? null);
+  const [heroPosts, setHeroPosts] = useState<CmsPost[]>(() => cached?.heroPosts ?? []);
+  const [loading, setLoading] = useState(() => !cached);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasMore, setHasMore] = useState(() => cached?.hasMore ?? false);
+  const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(
+    () => cached?.lastDoc ?? null
+  );
+
+  // Track whether we currently have displayable content (for cold vs warm load).
+  const hasContentRef = useRef(
+    Boolean(cached && (cached.posts.length > 0 || cached.featured || cached.heroPosts.length > 0))
+  );
+
+  const writeCache = useCallback(
+    (entry: PublishedPostsCacheEntry) => {
+      publishedPostsCache.set(cacheKey, entry);
+    },
+    [cacheKey]
+  );
 
   const loadInitial = useCallback(async () => {
-    setLoading(true);
+    const warm = hasContentRef.current;
+    if (warm) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [page, featuredPost, heroes] = await Promise.all([
@@ -56,18 +101,31 @@ export function usePublishedPosts(
       setHasMore(page.hasMore);
       setFeatured(featuredPost);
       setHeroPosts(heroes);
+      hasContentRef.current =
+        page.posts.length > 0 || Boolean(featuredPost) || heroes.length > 0;
+      writeCache({
+        posts: page.posts,
+        featured: featuredPost,
+        heroPosts: heroes,
+        hasMore: page.hasMore,
+        lastDoc: page.lastDoc,
+      });
     } catch (err) {
       console.error('usePublishedPosts:', err);
       setError('Could not load posts. Please try again later.');
-      setPosts([]);
-      setFeatured(null);
-      setHeroPosts([]);
-      setHasMore(false);
-      setCursor(null);
+      // Keep prior content if we have it; only clear on a true cold failure.
+      if (!hasContentRef.current) {
+        setPosts([]);
+        setFeatured(null);
+        setHeroPosts([]);
+        setHasMore(false);
+        setCursor(null);
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, [category, includeFeatured, includeHero, pageSize]);
+  }, [category, includeFeatured, includeHero, pageSize, writeCache]);
 
   useEffect(() => {
     void loadInitial();
@@ -82,7 +140,15 @@ export function usePublishedPosts(
       setPosts((prev) => {
         const seen = new Set(prev.map((p) => p.id));
         const next = page.posts.filter((p) => !seen.has(p.id));
-        return [...prev, ...next];
+        const merged = [...prev, ...next];
+        writeCache({
+          posts: merged,
+          featured,
+          heroPosts,
+          hasMore: page.hasMore,
+          lastDoc: page.lastDoc,
+        });
+        return merged;
       });
       setCursor(page.lastDoc);
       setHasMore(page.hasMore);
@@ -92,13 +158,14 @@ export function usePublishedPosts(
     } finally {
       setLoadingMore(false);
     }
-  }, [category, cursor, hasMore, loadingMore, pageSize]);
+  }, [category, cursor, featured, hasMore, heroPosts, loadingMore, pageSize, writeCache]);
 
   return {
     posts,
     featured,
     heroPosts,
     loading,
+    refreshing,
     loadingMore,
     error,
     hasMore,
