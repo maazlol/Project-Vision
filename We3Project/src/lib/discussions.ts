@@ -67,9 +67,11 @@ export const getDiscussionRoomName = (room: Partial<DiscussionRoom> | null | und
 };
 
 export const buildDiscussionInviteLink = (roomId: string) => {
+  const id = (roomId || '').trim();
   const origin = window.location.origin;
-  const base = import.meta.env.BASE_URL;
-  return `${origin}${base}#/discussions?join=${encodeURIComponent(roomId)}`;
+  const base = import.meta.env.BASE_URL || '/';
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+  return `${origin}${normalizedBase}#/discussions?join=${encodeURIComponent(id)}`;
 };
 
 export const joinDiscussionRoom = async (post: any, profile: UserProfile) => {

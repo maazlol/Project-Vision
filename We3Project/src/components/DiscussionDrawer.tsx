@@ -12,7 +12,13 @@ import {
 import type { DiscussionMessage, DiscussionRoom } from '../lib/discussions';
 import { useUserRole } from '../lib/useUserRole';
 import { useToast } from './Toast';
-import { createCustomGroupChat, sendGroupMessage, type GroupChat, type GroupMessage } from '../lib/groupChat';
+import {
+  backfillGroupInviteMappings,
+  createCustomGroupChat,
+  sendGroupMessage,
+  type GroupChat,
+  type GroupMessage,
+} from '../lib/groupChat';
 import GroupInfoModal from './GroupInfoModal';
 
 interface DiscussionDrawerProps {
@@ -98,6 +104,7 @@ const DiscussionDrawer: React.FC<DiscussionDrawerProps> = ({
 
         setGroups(nextGroups);
         setGroupsLoading(false);
+        backfillGroupInviteMappings(nextGroups, profile.uid);
       },
       (error) => {
         console.error('Groups error:', error);

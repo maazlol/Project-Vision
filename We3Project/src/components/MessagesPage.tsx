@@ -263,7 +263,7 @@ const MessagesPage: React.FC = () => {
       try {
         const roomSnap = await getDoc(doc(db, 'discussions', joinId));
         if (!roomSnap.exists()) {
-          showToast('Invitation link is invalid.', 'error');
+          showToast('Invitation link is invalid or expired.', 'error');
           clearJoinQuery();
           return;
         }
@@ -286,9 +286,15 @@ const MessagesPage: React.FC = () => {
 
         setInviteRoom(room);
         setShowInviteModal(true);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Invite load error:', error);
-        showToast('Could not open invite link.', 'error');
+        showToast(
+          error?.code === 'permission-denied'
+            ? 'Permission denied opening invite. Make sure you are signed in.'
+            : 'Could not open invite link.',
+          'error'
+        );
+        clearJoinQuery();
       } finally {
         setInviteLoading(false);
       }

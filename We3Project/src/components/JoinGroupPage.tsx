@@ -38,14 +38,22 @@ const JoinGroupPage: React.FC = () => {
       }
 
       try {
-        const groupData = await getGroupByInviteToken(inviteToken);
+        const groupData = await getGroupByInviteToken(inviteToken, profile);
         if (groupData) {
           setGroup(groupData);
+          setError(null);
         } else {
-          setError('Invalid or expired invite link');
+          setError(
+            'Invalid or expired invite link. Ask the group admin to open Group Info and regenerate the invite link.'
+          );
         }
       } catch (err: any) {
-        setError(err.message || 'Failed to load group');
+        console.error('Join invite load error:', err);
+        const message =
+          err?.code === 'permission-denied'
+            ? 'Could not load this invite (permission denied). Try refreshing, or ask the admin to regenerate the invite link.'
+            : err.message || 'Failed to load group';
+        setError(message);
       } finally {
         setLoading(false);
       }

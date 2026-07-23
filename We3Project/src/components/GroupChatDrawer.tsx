@@ -17,6 +17,7 @@ import { useUserRole } from '../lib/useUserRole';
 import { useToast } from './Toast';
 import {
   sendGroupMessage,
+  backfillGroupInviteMappings,
   createCustomGroupChat,
   generateGroupInviteLink,
   type GroupChat,
@@ -90,6 +91,7 @@ const GroupChatDrawer: React.FC<GroupChatDrawerProps> = ({ isOpen, onClose }) =>
 
         setGroups(nextGroups);
         setGroupsLoading(false);
+        backfillGroupInviteMappings(nextGroups, profile.uid);
       },
       (error) => {
         console.error('Groups error:', error);

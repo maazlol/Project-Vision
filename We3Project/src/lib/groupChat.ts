@@ -2,6 +2,8 @@ import {
   collection,
   doc,
   getDoc,
+  setDoc,
+  deleteDoc,
   updateDoc,
   serverTimestamp,
   arrayUnion,
@@ -14,6 +16,102 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { UserProfile } from './useUserRole';
+
+const writeGroupInviteMapping = async (
+  inviteToken: string,
+  groupId: string,
+  createdBy: string
+) => {
+  await setDoc(doc(db, 'groupInvites', inviteToken), {
+    groupId,
+    createdBy,
+    createdAt: serverTimestamp(),
+  });
+};
+
+/**
+ * Ensure legacy groups have a groupInvites/{token} doc so invite links resolve
+ * with a simple get (no collection query). Safe to call for admins only.
+ */
+export const ensureGroupInviteMapping = async (
+  group: Pick<GroupChat, 'id' | 'inviteToken' | 'admins' | 'createdBy'>,
+  currentUserUid: string
+): Promise<void> => {
+  const token = (group.inviteToken || '').trim();
+  if (!token || !group.id) return;
+
+  const isAdmin =
+    (group.admins || []).includes(currentUserUid) ||
+    group.createdBy === currentUserUid;
+  if (!isAdmin) return;
+
+  try {
+    const inviteRef = doc(db, 'groupInvites', token);
+    const existing = await getDoc(inviteRef);
+    if (existing.exists()) return;
+    await writeGroupInviteMapping(token, group.id, currentUserUid);
+  } catch (error) {
+    console.warn('ensureGroupInviteMapping failed:', error);
+  }
+};
+
+/**
+ * Repair legacy group docs so list + invite join keep working:
+ * - missing visibilityScope → 'all'
+ * - missing inviteToken → generate one
+ * - missing groupInvites mapping → write one
+ */
+export const ensureGroupJoinFields = async (
+  group: GroupChat,
+  currentUserUid: string
+): Promise<GroupChat> => {
+  const isAdmin =
+    (group.admins || []).includes(currentUserUid) ||
+    group.createdBy === currentUserUid;
+  if (!isAdmin || !group.id) return group;
+
+  const updates: Record<string, unknown> = {};
+  let nextToken = (group.inviteToken || '').trim();
+  let nextVisibility = group.visibilityScope;
+
+  if (!nextVisibility) {
+    nextVisibility = 'all';
+    updates.visibilityScope = 'all';
+  }
+
+  if (!nextToken) {
+    nextToken = generateInviteToken();
+    updates.inviteToken = nextToken;
+  }
+
+  if (Object.keys(updates).length > 0) {
+    try {
+      await updateDoc(doc(db, 'groups', group.id), {
+        ...updates,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.warn('ensureGroupJoinFields update failed:', error);
+      return group;
+    }
+  }
+
+  const repaired: GroupChat = {
+    ...group,
+    inviteToken: nextToken,
+    visibilityScope: nextVisibility || 'all',
+  };
+
+  await ensureGroupInviteMapping(repaired, currentUserUid);
+  return repaired;
+};
+
+/** Backfill join fields for every group the user admins (fire-and-forget). */
+export const backfillGroupInviteMappings = (groups: GroupChat[], currentUserUid: string) => {
+  for (const group of groups) {
+    void ensureGroupJoinFields(group, currentUserUid);
+  }
+};
 
 export interface GroupChat {
   id: string;
@@ -93,8 +191,15 @@ export const createGroupChat = async (
       return existingDocs.docs[0].id;
     }
 
-    // Create new group
+    // Create new group + invite mapping (so invite links resolve without a
+    // collection query that security rules would reject for many users).
     const docRef = await addDoc(groupsRef, groupData);
+    try {
+      await writeGroupInviteMapping(groupData.inviteToken, docRef.id, creatorProfile.uid);
+    } catch (inviteError) {
+      console.error('Error writing group invite mapping:', inviteError);
+      // Group still exists; invite lookup may fall back to legacy query.
+    }
     return docRef.id;
   } catch (error) {
     console.error('Error creating group chat:', error);
@@ -136,6 +241,11 @@ export const createCustomGroupChat = async (
 
   try {
     const docRef = await addDoc(collection(db, 'groups'), groupData);
+    try {
+      await writeGroupInviteMapping(groupData.inviteToken, docRef.id, creatorProfile.uid);
+    } catch (inviteError) {
+      console.error('Error writing group invite mapping:', inviteError);
+    }
     return docRef.id;
   } catch (error) {
     console.error('Error creating custom group chat:', error);
@@ -146,20 +256,82 @@ export const createCustomGroupChat = async (
 /**
  * Get group chat by invite token
  */
-export const getGroupByInviteToken = async (inviteToken: string): Promise<GroupChat | null> => {
+export const getGroupByInviteToken = async (
+  inviteToken: string,
+  userProfile?: UserProfile | null
+): Promise<GroupChat | null> => {
+  // useParams already decodes once; tolerate accidental double-encoding.
+  let token = (inviteToken || '').trim();
   try {
-    const groupsRef = collection(db, 'groups');
-    const q = query(groupsRef, where('inviteToken', '==', inviteToken));
-    const snapshot = await getDocs(q);
-    
-    if (snapshot.empty) return null;
-    
-    const doc = snapshot.docs[0];
-    return { id: doc.id, ...doc.data() } as GroupChat;
-  } catch (error) {
-    console.error('Error getting group by invite token:', error);
-    throw error;
+    if (token.includes('%')) token = decodeURIComponent(token);
+  } catch {
+    // keep raw token
   }
+  if (!token) return null;
+
+  const isPrivileged =
+    !!userProfile &&
+    (userProfile.role === 'volunteer' ||
+      userProfile.role === 'ngo' ||
+      userProfile.role === 'admin');
+
+  // Preferred path: direct get on invite mapping (works for all signed-in roles).
+  try {
+    const inviteSnap = await getDoc(doc(db, 'groupInvites', token));
+    if (inviteSnap.exists()) {
+      const groupId = String(inviteSnap.data()?.groupId || '');
+      if (!groupId) return null;
+      const groupSnap = await getDoc(doc(db, 'groups', groupId));
+      if (!groupSnap.exists()) return null;
+      return { id: groupSnap.id, ...groupSnap.data() } as GroupChat;
+    }
+  } catch (mappingError) {
+    console.warn('groupInvites lookup failed, trying legacy query:', mappingError);
+  }
+
+  // Legacy fallback: query groups by inviteToken.
+  // Non-privileged users must filter visibilityScope so the query
+  // satisfies security rules ("rules are not filters").
+  const groupsRef = collection(db, 'groups');
+
+  try {
+    const legacyQuery = isPrivileged
+      ? query(groupsRef, where('inviteToken', '==', token))
+      : query(
+          groupsRef,
+          where('inviteToken', '==', token),
+          where('visibilityScope', '==', 'all')
+        );
+
+    const snapshot = await getDocs(legacyQuery);
+    if (!snapshot.empty) {
+      const legacyDoc = snapshot.docs[0];
+      const group = { id: legacyDoc.id, ...legacyDoc.data() } as GroupChat;
+      // Best-effort backfill so next open uses the fast path.
+      if (userProfile?.uid) {
+        void ensureGroupInviteMapping(group, userProfile.uid);
+      }
+      return group;
+    }
+  } catch (legacyError) {
+    console.warn('Legacy inviteToken==all query failed:', legacyError);
+  }
+
+  // Some legacy docs may omit visibilityScope. Privileged query already covered
+  // both scopes; for supporters try a second unconstrained query only if the
+  // first returned empty without error (won't work under rules) — skip.
+  // Instead try inviteToken-only when privileged already failed above.
+  if (!isPrivileged) {
+    try {
+      // Groups with missing visibilityScope are treated as public in rules (null).
+      // Firestore equality on missing field won't match 'all', so try token-only
+      // is not allowed for supporters. Nothing more we can do client-side.
+    } catch {
+      // no-op
+    }
+  }
+
+  return null;
 };
 
 /**
@@ -170,7 +342,7 @@ export const joinGroupViaToken = async (
   userProfile: UserProfile
 ): Promise<void> => {
   try {
-    const group = await getGroupByInviteToken(inviteToken);
+    const group = await getGroupByInviteToken(inviteToken, userProfile);
     
     if (!group) {
       throw new Error('Invalid invite link');
@@ -451,9 +623,16 @@ export const sendGroupMessage = async (
  * Generate invite link for group
  */
 export const generateGroupInviteLink = (inviteToken: string): string => {
+  const token = (inviteToken || '').trim();
+  if (!token) {
+    return `${window.location.origin}${import.meta.env.BASE_URL}#/chat/join/`;
+  }
+
+  // Keep origin + Vite base path so GitHub Pages (/Project-Vision/) links work.
   const origin = window.location.origin;
-  const base = import.meta.env.BASE_URL;
-  return `${origin}${base}#/chat/join/${encodeURIComponent(inviteToken)}`;
+  const base = import.meta.env.BASE_URL || '/';
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+  return `${origin}${normalizedBase}#/chat/join/${encodeURIComponent(token)}`;
 };
 
 /**
@@ -475,11 +654,29 @@ export const regenerateInviteToken = async (
       throw new Error('Only admins can regenerate invite links');
     }
 
+    const oldToken = group.inviteToken;
     const newToken = generateInviteToken();
     await updateDoc(groupRef, {
       inviteToken: newToken,
       updatedAt: serverTimestamp(),
     });
+
+    try {
+      if (oldToken) {
+        await deleteDoc(doc(db, 'groupInvites', oldToken));
+      }
+    } catch (deleteError) {
+      // Old mapping may not exist for legacy groups.
+      console.warn('Could not delete old group invite mapping:', deleteError);
+    }
+
+    try {
+      // createdBy must be the regenerating admin (or original creator) so
+      // groupInvites create rules accept the write.
+      await writeGroupInviteMapping(newToken, groupId, currentUserUid);
+    } catch (inviteError) {
+      console.error('Error writing regenerated invite mapping:', inviteError);
+    }
 
     return newToken;
   } catch (error) {
@@ -497,10 +694,15 @@ export const getUserGroups = async (userUid: string): Promise<GroupChat[]> => {
     const q = query(groupsRef, where('members', 'array-contains', userUid));
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
+    const groups = snapshot.docs.map((groupDoc) => ({
+      id: groupDoc.id,
+      ...groupDoc.data(),
     })) as GroupChat[];
+
+    // Repair legacy invite/visibility fields for groups this user admins.
+    backfillGroupInviteMappings(groups, userUid);
+
+    return groups;
   } catch (error) {
     console.error('Error getting user groups:', error);
     throw error;
